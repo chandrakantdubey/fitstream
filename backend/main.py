@@ -11,6 +11,12 @@ from app.routers import (
     feeds_router,
     health_router,
     progress_router,
+    auth_router,
+    body_metrics_router,
+    programs_router,
+    goals_router,
+    schedule_router,
+    export_router,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -50,6 +56,12 @@ app.include_router(workouts_router)
 app.include_router(feeds_router)
 app.include_router(health_router)
 app.include_router(progress_router)
+app.include_router(auth_router)
+app.include_router(body_metrics_router)
+app.include_router(programs_router)
+app.include_router(goals_router)
+app.include_router(schedule_router)
+app.include_router(export_router)
 
 
 @app.get("/")

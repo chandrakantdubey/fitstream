@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { checkHealth } from "../utils/api";
+import useAuthStore from "../stores/authStore";
 import {
   Activity,
   Trash2,
@@ -8,6 +9,8 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  LogOut,
+  User,
 } from "lucide-react";
 
 export default function Settings() {
@@ -15,6 +18,9 @@ export default function Settings() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
+  const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     if ("storage" in navigator && "estimate" in navigator.storage) {
@@ -50,6 +56,36 @@ export default function Settings() {
     setLoading(false);
   };
 
+  const handleExport = async () => {
+    setExportLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:8000/export/full', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      // Create and download the file
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `fitstream-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export failed:', err);
+    }
+    setExportLoading(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = '/login';
+  };
+
   const statusIcon = (s) => {
     if (s === "healthy")
       return <CheckCircle size={12} className="text-emerald-400" />;
@@ -61,6 +97,43 @@ export default function Settings() {
   return (
     <div className="space-y-5 pb-4 animate-fade-in">
       <h1 className="page-title">Settings</h1>
+
+      {/* User Profile */}
+      <div className="surface p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center">
+            <User size={20} className="text-white" />
+          </div>
+          <div>
+            <p className="font-semibold text-zinc-200">{user?.full_name || user?.username}</p>
+            <p className="text-xs text-zinc-500">{user?.email}</p>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="btn-ghost w-full flex items-center justify-center gap-2 text-sm py-2.5"
+        >
+          <LogOut size={14} /> Sign Out
+        </button>
+      </div>
+
+      {/* Data Export */}
+      <div className="surface p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Download size={16} className="text-brand-400" />
+          <span className="text-sm font-medium">Export Data</span>
+        </div>
+        <p className="text-xs text-zinc-500">
+          Download all your fitness data including workouts, progress, and settings
+        </p>
+        <button
+          onClick={handleExport}
+          disabled={exportLoading}
+          className="btn-brand w-full flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {exportLoading ? "Exporting..." : "Export All Data"}
+        </button>
+      </div>
 
       <div className="surface p-4 space-y-4">
         <div className="flex items-center justify-between">

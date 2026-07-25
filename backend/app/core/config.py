@@ -9,3 +9,4 @@ EXERCISES_JSON = DATA_DIR / "exercises.json"
 DATA_DIR.mkdir(exist_ok=True)
 
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
+SECRET_KEY = os.getenv("SECRET_KEY", "fitstream-dev-secret-key-change-in-production")

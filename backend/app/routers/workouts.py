@@ -5,8 +5,10 @@ from typing import List
 from datetime import datetime
 import uuid
 from app.core.database import get_db
+from app.core.auth import get_current_user
 from app.models.workout import Workout, WorkoutExercise, WorkoutSession, SessionSet
 from app.models.exercise import Exercise
+from app.models.user import User
 
 router = APIRouter(prefix="/workouts", tags=["workouts"])
 
@@ -33,8 +35,8 @@ class SessionSetIn(BaseModel):
 
 
 @router.post("")
-def create_workout(data: WorkoutIn, db: Session = Depends(get_db)):
-    w = Workout(id=str(uuid.uuid4())[:8], name=data.name)
+def create_workout(data: WorkoutIn, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    w = Workout(id=str(uuid.uuid4())[:8], user_id=current_user.id, name=data.name)
     db.add(w)
     db.flush()
 
@@ -56,19 +58,19 @@ def create_workout(data: WorkoutIn, db: Session = Depends(get_db)):
 
 
 @router.get("")
-def list_workouts(db: Session = Depends(get_db)):
-    return [_format_workout(w) for w in db.query(Workout).order_by(Workout.created_at.desc()).all()]
+def list_workouts(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return [_format_workout(w) for w in db.query(Workout).filter(Workout.user_id == current_user.id).order_by(Workout.created_at.desc()).all()]
 
 
 @router.get("/{workout_id}")
-def get_workout(workout_id: str, db: Session = Depends(get_db)):
-    w = db.query(Workout).filter(Workout.id == workout_id).first()
+def get_workout(workout_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    w = db.query(Workout).filter(Workout.id == workout_id, Workout.user_id == current_user.id).first()
     return _format_workout(w) if w else {"error": "Not found"}
 
 
 @router.delete("/{workout_id}")
-def delete_workout(workout_id: str, db: Session = Depends(get_db)):
-    w = db.query(Workout).filter(Workout.id == workout_id).first()
+def delete_workout(workout_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    w = db.query(Workout).filter(Workout.id == workout_id, Workout.user_id == current_user.id).first()
     if w:
         db.delete(w)
         db.commit()
@@ -76,8 +78,8 @@ def delete_workout(workout_id: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{workout_id}")
-def update_workout(workout_id: str, data: WorkoutIn, db: Session = Depends(get_db)):
-    w = db.query(Workout).filter(Workout.id == workout_id).first()
+def update_workout(workout_id: str, data: WorkoutIn, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    w = db.query(Workout).filter(Workout.id == workout_id, Workout.user_id == current_user.id).first()
     if not w:
         return {"error": "Not found"}
 
