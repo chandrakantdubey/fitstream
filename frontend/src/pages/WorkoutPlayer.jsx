@@ -8,7 +8,9 @@ import {
   ArrowLeft,
   Sparkles,
   Flame,
-  CheckCircle2
+  CheckCircle2,
+  RotateCcw,
+  X
 } from "lucide-react";
 
 const API_BASE = "http://localhost:8000";
@@ -33,8 +35,8 @@ export default function WorkoutPlayer() {
   const [workoutDuration, setWorkoutDuration] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [workoutFinished, setWorkoutFinished] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
-  // Dynamic Routine Resolution
   useEffect(() => {
     const resolveRoutine = async () => {
       try {
@@ -76,7 +78,6 @@ export default function WorkoutPlayer() {
             { id: "c3", name: "Mountain Climbers", target: "Full Body", sets: 3, reps: 20, defaultWeight: 0 }
           ];
         } else {
-          // Fetch from backend
           const res = await fetch(`${API_BASE}/workouts/${workoutId}`);
           const data = await res.json();
           if (data && data.name) {
@@ -95,7 +96,6 @@ export default function WorkoutPlayer() {
         }
 
         if (exercises.length === 0) {
-          // Fallback routine if none match
           title = "Full Body Strength";
           exercises = [
             { id: "f1", name: "Dumbbell Bench Press", target: "Chest", sets: 3, reps: 10, defaultWeight: 20 },
@@ -107,7 +107,6 @@ export default function WorkoutPlayer() {
         setRoutineTitle(title);
         setRoutineExercises(exercises);
 
-        // Start session in backend
         const sessRes = await fetch(`${API_BASE}/workouts/${workoutId}/sessions?user_id=1`, { method: "POST" });
         const sessData = await sessRes.json();
         if (sessData && sessData.id) {
@@ -173,6 +172,17 @@ export default function WorkoutPlayer() {
     return () => clearInterval(timerInt);
   }, [isResting, restTimer, soundEnabled]);
 
+  const handleResetSession = () => {
+    setExerciseIndex(0);
+    setCurrentSet(1);
+    setCompletedSets([]);
+    setIsResting(false);
+    setRestTimer(45);
+    setWorkoutDuration(0);
+    setWorkoutFinished(false);
+    speakCue("Session reset back to exercise 1.");
+  };
+
   const handleCompleteSet = async () => {
     const newRecord = {
       exerciseId: currentExercise.id,
@@ -183,7 +193,6 @@ export default function WorkoutPlayer() {
 
     setCompletedSets(prev => [...prev, newRecord]);
 
-    // Backend set log call
     if (sessionId) {
       try {
         await fetch(`${API_BASE}/workouts/sessions/${sessionId}/sets`, {
@@ -217,7 +226,6 @@ export default function WorkoutPlayer() {
         setWorkoutFinished(true);
         speakCue("Congratulations! Workout complete!");
 
-        // Complete session in backend
         if (sessionId) {
           try {
             await fetch(`${API_BASE}/workouts/sessions/${sessionId}/complete?user_id=1`, { method: "POST" });
@@ -285,10 +293,12 @@ export default function WorkoutPlayer() {
 
   return (
     <div className="space-y-5 pb-24">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => setShowCancelModal(true)}
           className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+          title="Cancel Workout"
         >
           <ArrowLeft size={18} />
         </button>
@@ -298,17 +308,27 @@ export default function WorkoutPlayer() {
           <div className="text-sm font-bold text-white">{formatDuration(workoutDuration)}</div>
         </div>
 
-        <button
-          onClick={() => setSoundEnabled(!soundEnabled)}
-          className={`p-2 rounded-xl border transition-all ${
-            soundEnabled
-              ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-400"
-              : "bg-zinc-900 border-zinc-800 text-zinc-500"
-          }`}
-          title="Toggle Voice Cues"
-        >
-          {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleResetSession}
+            className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-amber-400"
+            title="Reset Session to Exercise 1"
+          >
+            <RotateCcw size={17} />
+          </button>
+
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={`p-2 rounded-xl border transition-all ${
+              soundEnabled
+                ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-400"
+                : "bg-zinc-900 border-zinc-800 text-zinc-500"
+            }`}
+            title="Toggle Voice Cues"
+          >
+            {soundEnabled ? <Volume2 size={17} /> : <VolumeX size={17} />}
+          </button>
+        </div>
       </div>
 
       {isResting ? (
@@ -417,6 +437,30 @@ export default function WorkoutPlayer() {
           ))}
         </div>
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 max-w-sm w-full space-y-4">
+            <h3 className="text-lg font-bold text-white">Cancel Live Workout?</h3>
+            <p className="text-xs text-zinc-400">Abandoning this workout will exit without saving your current set progress.</p>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="btn-ghost flex-1 py-2.5"
+              >
+                Resume Workout
+              </button>
+              <button
+                onClick={() => navigate(-1)}
+                className="btn-danger flex-1 py-2.5"
+              >
+                Exit Workout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

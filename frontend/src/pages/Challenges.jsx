@@ -5,7 +5,8 @@ import {
   Flame,
   CheckCircle2,
   Play,
-  Sparkles
+  Sparkles,
+  RotateCcw
 } from "lucide-react";
 
 const API_BASE = "http://localhost:8000";
@@ -62,6 +63,19 @@ export default function Challenges() {
     }
   };
 
+  const handleRestartChallenge = async (id) => {
+    try {
+      await fetch(`${API_BASE}/reset/challenge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: "1", challenge_id: id })
+      });
+      fetchDetails(id);
+    } catch (err) {
+      console.error("Error resetting challenge:", err);
+    }
+  };
+
   const handleCompleteDay = async (dayNumber) => {
     try {
       await fetch(`${API_BASE}/challenges/complete-day`, {
@@ -77,7 +91,6 @@ export default function Challenges() {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Header */}
       <div>
         <h1 className="page-title flex items-center gap-2">
           <CalendarCheck className="text-emerald-400" size={26} /> 30-Day Challenges
@@ -87,7 +100,6 @@ export default function Challenges() {
         </p>
       </div>
 
-      {/* Challenge Selector Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
         {catalog.map((ch) => {
           const isSelected = ch.id === selectedChallengeId;
@@ -108,7 +120,6 @@ export default function Challenges() {
         })}
       </div>
 
-      {/* Selected Challenge Details Header */}
       {challengeDetails && (
         <div className="surface p-6 relative overflow-hidden bg-gradient-to-r from-zinc-900 via-zinc-900 to-emerald-950/40">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -133,11 +144,20 @@ export default function Challenges() {
                 <Sparkles size={16} /> Start 30-Day Plan
               </button>
             ) : (
-              <div className="bg-zinc-950/80 border border-emerald-800/40 p-4 rounded-2xl text-center shrink-0 min-w-[140px]">
-                <div className="text-2xl font-black text-emerald-400">
-                  {challengeDetails.user_progress.completed_days.length} / 30
+              <div className="flex flex-col items-center gap-2 shrink-0">
+                <div className="bg-zinc-950/80 border border-emerald-800/40 p-3.5 rounded-2xl text-center min-w-[140px]">
+                  <div className="text-2xl font-black text-emerald-400">
+                    {challengeDetails.user_progress.completed_days.length} / 30
+                  </div>
+                  <div className="text-[10px] text-zinc-400 font-semibold uppercase mt-0.5">Days Completed</div>
                 </div>
-                <div className="text-[10px] text-zinc-400 font-semibold uppercase mt-0.5">Days Completed</div>
+
+                <button
+                  onClick={() => handleRestartChallenge(selectedChallengeId)}
+                  className="text-[11px] text-zinc-500 hover:text-amber-400 flex items-center gap-1 font-medium"
+                >
+                  <RotateCcw size={12} /> Restart Challenge
+                </button>
               </div>
             )}
           </div>
@@ -161,7 +181,6 @@ export default function Challenges() {
         </div>
       )}
 
-      {/* 30-Day Grid */}
       {challengeDetails && (
         <div className="space-y-3">
           <h3 className="text-base font-bold text-white flex items-center justify-between">

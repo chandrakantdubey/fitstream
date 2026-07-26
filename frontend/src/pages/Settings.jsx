@@ -1,17 +1,51 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
-import { Settings as SettingsIcon, User, Volume2, Database, LogOut } from "lucide-react";
+import { Settings as SettingsIcon, Volume2, Database, LogOut, RotateCcw, Trash2, ShieldAlert } from "lucide-react";
+
+const API_BASE = "http://localhost:8000";
 
 export default function Settings() {
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
   const [autoRestTimer, setAutoRestTimer] = useState(true);
   const [units, setUnits] = useState("Metric (kg, km)");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [message, setMessage] = useState("");
 
   const handleLogout = () => {
     logout();
     navigate("/login");
+  };
+
+  const handleResetToday = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/reset/today?user_id=1`, { method: "POST" });
+      const data = await res.json();
+      setMessage(data.message || "Today's tracking metrics reset.");
+    } catch (err) {
+      console.error("Error resetting today:", err);
+    }
+  };
+
+  const handleClearRoutines = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/reset/custom-workouts?user_id=1`, { method: "POST" });
+      const data = await res.json();
+      setMessage(data.message || "Custom routines cleared.");
+    } catch (err) {
+      console.error("Error clearing routines:", err);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      await fetch(`${API_BASE}/auth/account`, { method: "DELETE" });
+      logout();
+      navigate("/login");
+    } catch (err) {
+      console.error("Error deleting account:", err);
+    }
   };
 
   return (
@@ -21,9 +55,15 @@ export default function Settings() {
           <SettingsIcon className="text-emerald-400" size={26} /> Settings & Profile
         </h1>
         <p className="page-subtitle">
-          Manage athlete profile, units, voice cues, and data preferences.
+          Manage athlete profile, units, voice cues, and data reset preferences.
         </p>
       </div>
+
+      {message && (
+        <div className="p-3 bg-emerald-950/60 border border-emerald-500/50 rounded-xl text-xs text-emerald-300 font-semibold">
+          {message}
+        </div>
+      )}
 
       {/* Athlete Profile Card */}
       <div className="surface p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-zinc-800">
@@ -45,13 +85,13 @@ export default function Settings() {
 
         <button
           onClick={handleLogout}
-          className="btn-danger text-xs py-2.5 px-4 font-bold flex items-center gap-2 w-full sm:w-auto justify-center"
+          className="btn-ghost text-xs py-2.5 px-4 font-bold flex items-center gap-2 w-full sm:w-auto justify-center"
         >
           <LogOut size={16} /> Log Out
         </button>
       </div>
 
-      {/* Workout Player Preferences */}
+      {/* Live Workout Preferences */}
       <div className="surface p-6 space-y-4 border border-zinc-800">
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
           <Volume2 size={18} className="text-emerald-400" /> Live Workout Player Preferences
@@ -94,24 +134,81 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* System & Storage */}
+      {/* Reset & Account Controls */}
       <div className="surface p-6 space-y-4 border border-zinc-800">
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <Database size={18} className="text-blue-400" /> Database & Storage
+          <RotateCcw size={18} className="text-amber-400" /> Data Reset & Account Management
         </h3>
 
         <div className="space-y-3">
+          <div className="flex items-center justify-between py-2 border-b border-zinc-800/80">
+            <div>
+              <div className="text-xs font-semibold text-white">Reset Today's Metrics</div>
+              <div className="text-[11px] text-zinc-400">Reset water intake, active minutes, and calories for today</div>
+            </div>
+            <button
+              onClick={handleResetToday}
+              className="btn-ghost text-xs px-3 py-1.5 font-bold"
+            >
+              Reset Today
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between py-2 border-b border-zinc-800/80">
+            <div>
+              <div className="text-xs font-semibold text-white">Clear Custom Routines</div>
+              <div className="text-[11px] text-zinc-400">Remove all custom routines created with the builder or AI</div>
+            </div>
+            <button
+              onClick={handleClearRoutines}
+              className="btn-ghost text-xs px-3 py-1.5 font-bold text-amber-400 border-amber-500/30"
+            >
+              Clear Routines
+            </button>
+          </div>
+
           <div className="flex items-center justify-between py-2">
             <div>
-              <div className="text-xs font-semibold text-white">Local Cache & SQLite Database</div>
-              <div className="text-[11px] text-zinc-400">IndexedDB & FastAPI SQLite Sync</div>
+              <div className="text-xs font-semibold text-red-400">Delete Account & Permanent Wipe</div>
+              <div className="text-[11px] text-zinc-400">Permanently delete user profile, workouts, daily logs, and maps</div>
             </div>
-            <span className="badge text-emerald-400 bg-emerald-500/10 border-emerald-500/30">
-              HEALTHY (v2.1.0)
-            </span>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="btn-danger text-xs px-3 py-1.5 font-bold"
+            >
+              Delete Account
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-red-500/50 rounded-3xl p-6 max-w-sm w-full space-y-4">
+            <div className="flex items-center gap-2 text-red-400 font-bold">
+              <ShieldAlert size={20} /> Permanent Account Deletion
+            </div>
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              Are you sure you want to permanently delete your account? All custom routines, 30-day challenge progress, daily logs, and outdoor GPS maps will be permanently removed.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="btn-ghost flex-1 py-2.5"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                className="btn-danger flex-1 py-2.5 font-bold"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

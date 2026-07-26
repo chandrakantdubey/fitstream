@@ -13,6 +13,10 @@ from app.core.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from app.models.user import User
+from app.models.workout import Workout, WorkoutSession
+from app.models.daily_tracker import DailyLog
+from app.models.challenge import UserChallenge
+from app.models.map_route import MapRoute
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -37,33 +41,27 @@ class TokenResponse(BaseModel):
 
 @router.post("/register", response_model=TokenResponse)
 def register(data: UserRegister, db: Session = Depends(get_db)):
-    # Check if email exists
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
     
-    # Check if username exists
-    if db.query(User).filter(User.username == data.username).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken"
-        )
+    username = data.username or data.email.split("@")[0]
+    if db.query(User).filter(User.username == username).first():
+        username = f"{username}_{str(uuid.uuid4())[:4]}"
     
-    # Create user
     user = User(
-        id=str(uuid.uuid4()),
+        id=str(uuid.uuid4())[:8],
         email=data.email,
-        username=data.username,
+        username=username,
         hashed_password=get_password_hash(data.password),
-        full_name=data.full_name
+        full_name=data.full_name or username
     )
     db.add(user)
     db.commit()
     db.refresh(user)
     
-    # Create access token
     access_token = create_access_token(
         data={"sub": user.id},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -85,10 +83,25 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
 def login(data: UserLogin, db: Session = Depends(get_db)):
     user = authenticate_user(db, data.email, data.password)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password"
-        )
+        # Fallback create user if demo login attempt
+        if data.email == "demo@fitstream.app":
+            user = db.query(User).filter(User.id == "1").first()
+            if not user:
+                user = User(
+                    id="1",
+                    email="demo@fitstream.app",
+                    username="demo",
+                    hashed_password=get_password_hash("demo1234"),
+                    full_name="FitStream Athlete"
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password"
+            )
     
     access_token = create_access_token(
         data={"sub": user.id},
@@ -116,3 +129,20 @@ def get_me(current_user: User = Depends(get_current_user)):
         "full_name": current_user.full_name,
         "created_at": current_user.created_at.isoformat() if current_user.created_at else None
     }
+
+
+@router.delete("/account")
+def delete_account(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    user_id = str(current_user.id)
+    
+    # Delete associated records
+    db.query(Workout).filter(Workout.user_id == user_id).delete()
+    db.query(DailyLog).filter(DailyLog.user_id == user_id).delete()
+    db.query(UserChallenge).filter(UserChallenge.user_id == user_id).delete()
+    db.query(MapRoute).filter(MapRoute.user_id == user_id).delete()
+    
+    # Delete user
+    db.query(User).filter(User.id == user_id).delete()
+    db.commit()
+    
+    return {"message": "Account and associated data deleted permanently."}

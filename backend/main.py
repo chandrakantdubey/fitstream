@@ -21,6 +21,7 @@ from app.routers import (
     challenges_router,
     maps_router,
     knowledge_base_router,
+    reset_router,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -29,7 +30,6 @@ run_sqlite_compat_migrations(engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     db = SessionLocal()
     try:
         seed_exercises(db)
@@ -67,6 +67,7 @@ app.include_router(daily_tracker_router)
 app.include_router(challenges_router)
 app.include_router(maps_router)
 app.include_router(knowledge_base_router)
+app.include_router(reset_router)
 
 
 @app.get("/")
