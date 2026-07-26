@@ -10,11 +10,11 @@ export default function ExerciseDetail() {
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
       onClick={clear}
     >
       <div
-        className="bg-zinc-900 rounded-t-3xl sm:rounded-3xl w-full max-w-lg max-h-[92vh] overflow-y-auto border border-zinc-800"
+        className="bg-zinc-900 rounded-t-3xl sm:rounded-3xl w-full max-w-lg max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto border border-zinc-800"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-zinc-900/95 backdrop-blur-sm p-5 border-b border-zinc-800 flex items-center justify-between z-10">
@@ -27,7 +27,7 @@ export default function ExerciseDetail() {
           </button>
         </div>
 
-        <div className="p-5 space-y-5">
+        <div className="p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-5">
           {selected.media_id && (
             <div className="w-full aspect-video bg-zinc-950 rounded-2xl overflow-hidden border border-zinc-800">
               <img
