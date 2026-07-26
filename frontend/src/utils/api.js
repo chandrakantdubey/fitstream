@@ -1,8 +1,21 @@
 const API = import.meta.env.PROD ? "/api" : "http://localhost:8000";
 
+function clearAuthAndRedirect() {
+  localStorage.removeItem("token");
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+}
+
 export async function apiRequest(url, options = {}) {
   const { auth = true, body, headers, ...rest } = options;
   const token = localStorage.getItem("token");
+
+  if (auth && !token) {
+    clearAuthAndRedirect();
+    throw new Error("Please log in again");
+  }
+
   const requestHeaders = {
     ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
     ...(auth && token ? { Authorization: `Bearer ${token}` } : {}),
@@ -19,6 +32,9 @@ export async function apiRequest(url, options = {}) {
   const data = text ? JSON.parse(text) : null;
 
   if (!r.ok) {
+    if (r.status === 401 && auth) {
+      clearAuthAndRedirect();
+    }
     throw new Error(data?.detail || data?.error || `Request failed: ${r.status}`);
   }
 
