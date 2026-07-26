@@ -1,17 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
-import { Settings as SettingsIcon, Volume2, Database, LogOut, RotateCcw, Trash2, ShieldAlert } from "lucide-react";
+import { Settings as SettingsIcon, Volume2, Database, LogOut, RotateCcw, ShieldAlert } from "lucide-react";
 
 const API_BASE = "http://localhost:8000";
 
 export default function Settings() {
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore((state) => state.user);
+
   const [autoRestTimer, setAutoRestTimer] = useState(true);
   const [units, setUnits] = useState("Metric (kg, km)");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [message, setMessage] = useState("");
+  const [userProfile, setUserProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`);
+        const data = await res.json();
+        setUserProfile(data);
+      } catch (err) {
+        console.error("Error loading user profile:", err);
+      }
+    };
+    fetchMe();
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -48,8 +64,11 @@ export default function Settings() {
     }
   };
 
+  const name = userProfile?.full_name || user?.full_name || "FitStream Athlete";
+  const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "FA";
+
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6 pb-24 max-w-2xl mx-auto px-1">
       <div>
         <h1 className="page-title flex items-center gap-2">
           <SettingsIcon className="text-emerald-400" size={26} /> Settings & Profile
@@ -69,17 +88,19 @@ export default function Settings() {
       <div className="surface p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-zinc-800">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-extrabold text-xl shrink-0">
-            FA
+            {initials}
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-white">FitStream Athlete</h2>
+              <h2 className="text-base font-bold text-white">{name}</h2>
               <span className="badge text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
                 PRO ATHLETE
               </span>
             </div>
-            <p className="text-xs text-zinc-400">demo@fitstream.app</p>
-            <div className="text-[11px] text-zinc-500">Member since July 2026</div>
+            <p className="text-xs text-zinc-400">{userProfile?.email || user?.email || "athlete@fitstream.app"}</p>
+            <div className="text-[11px] text-zinc-500">
+              Height: {userProfile?.height_cm || 175} cm • Weight: {userProfile?.weight_kg || 70} kg
+            </div>
           </div>
         </div>
 

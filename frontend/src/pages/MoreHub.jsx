@@ -1,7 +1,30 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, MapPin, Sparkles, Settings, ChevronRight, User, Award, ShieldCheck } from "lucide-react";
+import useAuthStore from "../stores/authStore";
+import { BookOpen, MapPin, Sparkles, Settings, ChevronRight } from "lucide-react";
+
+const API_BASE = "http://localhost:8000";
 
 export default function MoreHub() {
+  const user = useAuthStore((state) => state.user);
+  const [userProfile, setUserProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`);
+        const data = await res.json();
+        setUserProfile(data);
+      } catch (err) {
+        console.error("Error loading profile:", err);
+      }
+    };
+    fetchMe();
+  }, []);
+
+  const name = userProfile?.full_name || user?.full_name || "FitStream Athlete";
+  const initials = name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "FA";
+
   const menuItems = [
     {
       title: "Exercise Library",
@@ -38,7 +61,7 @@ export default function MoreHub() {
   ];
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6 pb-24 max-w-2xl mx-auto px-1">
       <div>
         <h1 className="page-title">More & Explore</h1>
         <p className="page-subtitle">
@@ -50,14 +73,14 @@ export default function MoreHub() {
       <div className="surface p-5 border border-zinc-800 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-extrabold text-base">
-            FA
+            {initials}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-white">FitStream Athlete</h2>
+              <h2 className="text-sm font-bold text-white">{name}</h2>
               <span className="badge text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-500/10">PRO</span>
             </div>
-            <p className="text-xs text-zinc-400">demo@fitstream.app</p>
+            <p className="text-xs text-zinc-400">{userProfile?.email || user?.email || "athlete@fitstream.app"}</p>
           </div>
         </div>
         <Link

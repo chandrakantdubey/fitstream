@@ -1,8 +1,10 @@
+from typing import Optional
+from datetime import timedelta, date
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
-from datetime import timedelta
-import uuid
+
 from app.core.database import get_db
 from app.core.auth import (
     get_password_hash,
@@ -13,7 +15,7 @@ from app.core.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from app.models.user import User
-from app.models.workout import Workout, WorkoutSession
+from app.models.workout import Workout
 from app.models.daily_tracker import DailyLog
 from app.models.challenge import UserChallenge
 from app.models.map_route import MapRoute
@@ -23,9 +25,15 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 class UserRegister(BaseModel):
     email: EmailStr
-    username: str
+    username: Optional[str] = None
     password: str
     full_name: str = ""
+    height_cm: Optional[float] = 175.0
+    weight_kg: Optional[float] = 70.0
+    target_weight_kg: Optional[float] = 68.0
+    age: Optional[int] = 25
+    gender: Optional[str] = "Male"
+    fitness_goal: Optional[str] = "Muscle Growth"
 
 
 class UserLogin(BaseModel):
@@ -61,7 +69,27 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-    
+
+    # Initialize user's first daily log with signup physical metrics
+    today = date.today()
+    w = data.weight_kg or 70.0
+    water_target = round(w * 35)
+    daily_log = DailyLog(
+        user_id=user.id,
+        log_date=today,
+        water_ml=0,
+        target_water_ml=water_target,
+        active_minutes=0,
+        calories_burned=0,
+        height_cm=data.height_cm or 175.0,
+        weight_kg=w,
+        target_weight_kg=data.target_weight_kg or 68.0,
+        age=data.age or 25,
+        gender=data.gender or "Male"
+    )
+    db.add(daily_log)
+    db.commit()
+
     access_token = create_access_token(
         data={"sub": user.id},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -74,7 +102,12 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
             "id": user.id,
             "email": user.email,
             "username": user.username,
-            "full_name": user.full_name
+            "full_name": user.full_name,
+            "height_cm": data.height_cm,
+            "weight_kg": data.weight_kg,
+            "target_weight_kg": data.target_weight_kg,
+            "age": data.age,
+            "gender": data.gender
         }
     }
 
@@ -83,7 +116,6 @@ def register(data: UserRegister, db: Session = Depends(get_db)):
 def login(data: UserLogin, db: Session = Depends(get_db)):
     user = authenticate_user(db, data.email, data.password)
     if not user:
-        # Fallback create user if demo login attempt
         if data.email == "demo@fitstream.app":
             user = db.query(User).filter(User.id == "1").first()
             if not user:
@@ -121,12 +153,19 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
 
 
 @router.get("/me")
-def get_me(current_user: User = Depends(get_current_user)):
+def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Fetch latest daily log for physical stats
+    log = db.query(DailyLog).filter(DailyLog.user_id == str(current_user.id)).order_by(DailyLog.log_date.desc()).first()
     return {
         "id": current_user.id,
         "email": current_user.email,
         "username": current_user.username,
         "full_name": current_user.full_name,
+        "height_cm": log.height_cm if log else 175.0,
+        "weight_kg": log.weight_kg if log else 70.0,
+        "target_weight_kg": log.target_weight_kg if log else 68.0,
+        "age": log.age if log else 25,
+        "gender": log.gender if log else "Male",
         "created_at": current_user.created_at.isoformat() if current_user.created_at else None
     }
 
@@ -134,15 +173,10 @@ def get_me(current_user: User = Depends(get_current_user)):
 @router.delete("/account")
 def delete_account(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     user_id = str(current_user.id)
-    
-    # Delete associated records
     db.query(Workout).filter(Workout.user_id == user_id).delete()
     db.query(DailyLog).filter(DailyLog.user_id == user_id).delete()
     db.query(UserChallenge).filter(UserChallenge.user_id == user_id).delete()
     db.query(MapRoute).filter(MapRoute.user_id == user_id).delete()
-    
-    # Delete user
     db.query(User).filter(User.id == user_id).delete()
     db.commit()
-    
     return {"message": "Account and associated data deleted permanently."}
