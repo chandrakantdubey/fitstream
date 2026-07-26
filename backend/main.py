@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import engine, Base, SessionLocal
+from app.core.migrations import run_sqlite_compat_migrations
 from app.core.seed import seed_exercises
 from app.routers import (
     exercises_router,
@@ -20,6 +21,7 @@ from app.routers import (
 )
 
 Base.metadata.create_all(bind=engine)
+run_sqlite_compat_migrations(engine)
 
 
 @asynccontextmanager

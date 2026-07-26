@@ -69,9 +69,16 @@ export const useWorkoutStore = create((set, get) => ({
 
   save: async () => {
     const { current } = get();
-    if (!current.name || !current.exercises.length) return;
+    if (!current.name.trim()) {
+      useToastStore.getState().add("Name your workout first", "error");
+      return false;
+    }
+    if (!current.exercises.length) {
+      useToastStore.getState().add("Add at least one exercise", "error");
+      return false;
+    }
     const payload = {
-      name: current.name,
+      name: current.name.trim(),
       exercises: current.exercises.map((e, i) => ({
         exercise_id: e.id,
         order_index: i,
@@ -86,8 +93,10 @@ export const useWorkoutStore = create((set, get) => ({
       set({ current: { name: "", exercises: [] } });
       get().load();
       useToastStore.getState().add("Workout saved", "success");
-    } catch {
-      useToastStore.getState().add("Failed to save", "error");
+      return true;
+    } catch (err) {
+      useToastStore.getState().add(err.message || "Failed to save", "error");
+      return false;
     }
   },
 
