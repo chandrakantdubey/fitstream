@@ -9,6 +9,7 @@ import WorkoutPlayer from "./pages/WorkoutPlayer";
 import Library from "./pages/Library";
 import MapTracker from "./pages/MapTracker";
 import KnowledgeBase from "./pages/KnowledgeBase";
+import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -57,6 +58,11 @@ export default function App() {
           <Route path="/knowledge" element={
             <ProtectedRoute>
               <KnowledgeBase />
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Settings />
             </ProtectedRoute>
           } />
           <Route path="*" element={<Navigate to="/" replace />} />

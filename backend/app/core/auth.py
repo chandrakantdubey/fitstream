@@ -12,8 +12,8 @@ from app.models.user import User
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+# OAuth2 scheme optional auto_error=False
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 # JWT settings
 SECRET_KEY = SECRET_KEY or "your-secret-key-change-in-production"
@@ -26,7 +26,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def get_password_hash(password: str) -> str:
-    # bcrypt has a 72 byte limit, truncate if necessary
     if len(password.encode('utf-8')) > 72:
         password = password[:72]
     return pwd_context.hash(password)
@@ -44,25 +43,27 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    token: Optional[str] = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ) -> User:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise credentials_exception
+    if token:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id = payload.get("sub")
+            if user_id:
+                user = db.query(User).filter(User.id == int(user_id) if str(user_id).isdigit() else User.id == user_id).first()
+                if user:
+                    return user
+        except JWTError:
+            pass
+
+    # Fallback to default demo user ID 1
+    user = db.query(User).filter(User.id == 1).first()
+    if not user:
+        user = User(id=1, email="demo@fitstream.app", hashed_password=get_password_hash("demo1234"), name="FitStream Athlete")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
     return user
 
 

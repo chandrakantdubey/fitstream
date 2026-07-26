@@ -1,24 +1,26 @@
-import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
-  Play,
-  Pause,
-  SkipForward,
-  CheckCircle2,
   Volume2,
   VolumeX,
-  RotateCcw,
   Plus,
   Minus,
   ArrowLeft,
-  RefreshCw,
   Sparkles,
-  Flame
+  Flame,
+  CheckCircle2
 } from "lucide-react";
+
+const API_BASE = "http://localhost:8000";
 
 export default function WorkoutPlayer() {
   const { workoutId } = useParams();
   const navigate = useNavigate();
+
+  const [routineTitle, setRoutineTitle] = useState("Live Workout Session");
+  const [routineExercises, setRoutineExercises] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sessionId, setSessionId] = useState(null);
 
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [exerciseIndex, setExerciseIndex] = useState(0);
@@ -32,41 +34,117 @@ export default function WorkoutPlayer() {
   const [isPaused, setIsPaused] = useState(false);
   const [workoutFinished, setWorkoutFinished] = useState(false);
 
-  // Sample routine exercises
-  const [routineExercises, setRoutineExercises] = useState([
-    { id: "ex-1", name: "Dumbbell Bench Press", target: "Chest", sets: 3, reps: 10, defaultWeight: 24 },
-    { id: "ex-2", name: "Incline Dumbbell Flyes", target: "Upper Chest", sets: 3, reps: 12, defaultWeight: 16 },
-    { id: "ex-3", name: "Overhead Dumbbell Press", target: "Shoulders", sets: 3, reps: 10, defaultWeight: 18 },
-    { id: "ex-4", name: "Tricep Rope Pushdowns", target: "Triceps", sets: 3, reps: 12, defaultWeight: 22 },
-    { id: "ex-5", name: "Push-ups to Failure", target: "Chest & Triceps", sets: 2, reps: 15, defaultWeight: 0 }
-  ]);
+  // Dynamic Routine Resolution
+  useEffect(() => {
+    const resolveRoutine = async () => {
+      try {
+        setLoading(true);
+        let title = "Custom Workout Routine";
+        let exercises = [];
+
+        if (workoutId.startsWith("quick-")) {
+          if (workoutId.includes("warmup")) {
+            title = "7-Min Morning Warmup";
+            exercises = [
+              { id: "q1", name: "Jumping Jacks", target: "Cardio", sets: 2, reps: 30, defaultWeight: 0 },
+              { id: "q2", name: "Bodyweight Air Squats", target: "Legs", sets: 2, reps: 15, defaultWeight: 0 },
+              { id: "q3", name: "Arm Circles", target: "Shoulders", sets: 2, reps: 20, defaultWeight: 0 },
+              { id: "q4", name: "Cat-Cow Stretch", target: "Spine & Core", sets: 2, reps: 10, defaultWeight: 0 }
+            ];
+          } else if (workoutId.includes("abs")) {
+            title = "10-Min Abs Scorcher";
+            exercises = [
+              { id: "q5", name: "Ab Crunches", target: "Upper Abs", sets: 3, reps: 15, defaultWeight: 0 },
+              { id: "q6", name: "Russian Twists", target: "Obliques", sets: 3, reps: 20, defaultWeight: 0 },
+              { id: "q7", name: "Leg Raises", target: "Lower Abs", sets: 3, reps: 12, defaultWeight: 0 },
+              { id: "q8", name: "Forearm Plank", target: "Core Stability", sets: 3, reps: 45, defaultWeight: 0 }
+            ];
+          } else {
+            title = "15-Min HIIT Fat Burn";
+            exercises = [
+              { id: "q9", name: "Burpees", target: "Full Body", sets: 3, reps: 10, defaultWeight: 0 },
+              { id: "q10", name: "High Knees", target: "Cardio", sets: 3, reps: 30, defaultWeight: 0 },
+              { id: "q11", name: "Push-ups", target: "Chest", sets: 3, reps: 12, defaultWeight: 0 },
+              { id: "q12", name: "Squat Jumps", target: "Quads & Glutes", sets: 3, reps: 12, defaultWeight: 0 }
+            ];
+          }
+        } else if (workoutId.startsWith("challenge-")) {
+          title = "30-Day Challenge Session";
+          exercises = [
+            { id: "c1", name: "Challenge Crunches", target: "Abs", sets: 3, reps: 15, defaultWeight: 0 },
+            { id: "c2", name: "Plank Hold", target: "Core", sets: 3, reps: 30, defaultWeight: 0 },
+            { id: "c3", name: "Mountain Climbers", target: "Full Body", sets: 3, reps: 20, defaultWeight: 0 }
+          ];
+        } else {
+          // Fetch from backend
+          const res = await fetch(`${API_BASE}/workouts/${workoutId}`);
+          const data = await res.json();
+          if (data && data.name) {
+            title = data.name;
+            if (data.exercises) {
+              exercises = data.exercises.map((e, idx) => ({
+                id: e.id || `ex-${idx}`,
+                name: e.name || e.exercise?.name || "Exercise",
+                target: e.target || e.exercise?.target || "Full Body",
+                sets: e.sets || e.target_sets || 3,
+                reps: e.reps || e.target_reps || 10,
+                defaultWeight: e.weight || 20.0
+              }));
+            }
+          }
+        }
+
+        if (exercises.length === 0) {
+          // Fallback routine if none match
+          title = "Full Body Strength";
+          exercises = [
+            { id: "f1", name: "Dumbbell Bench Press", target: "Chest", sets: 3, reps: 10, defaultWeight: 20 },
+            { id: "f2", name: "Goblet Squats", target: "Quads", sets: 3, reps: 10, defaultWeight: 16 },
+            { id: "f3", name: "Dumbbell Rows", target: "Back", sets: 3, reps: 10, defaultWeight: 18 }
+          ];
+        }
+
+        setRoutineTitle(title);
+        setRoutineExercises(exercises);
+
+        // Start session in backend
+        const sessRes = await fetch(`${API_BASE}/workouts/${workoutId}/sessions?user_id=1`, { method: "POST" });
+        const sessData = await sessRes.json();
+        if (sessData && sessData.id) {
+          setSessionId(sessData.id);
+        }
+      } catch (err) {
+        console.error("Error loading workout routine:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    resolveRoutine();
+  }, [workoutId]);
 
   const currentExercise = routineExercises[exerciseIndex] || routineExercises[0];
 
-  // Speech synthesizer voice cue
   const speakCue = (text) => {
     if (!soundEnabled || !("speechSynthesis" in window)) return;
     try {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 1.0;
-      utterance.pitch = 1.0;
       window.speechSynthesis.speak(utterance);
     } catch (e) {
       console.log("Speech synthesis error", e);
     }
   };
 
-  // Announce initial exercise on index change
   useEffect(() => {
     if (currentExercise) {
-      setActiveWeight(currentExercise.defaultWeight);
-      setActiveReps(currentExercise.reps);
+      setActiveWeight(currentExercise.defaultWeight || 0);
+      setActiveReps(currentExercise.reps || 10);
       speakCue(`Next exercise: ${currentExercise.name}`);
     }
-  }, [exerciseIndex]);
+  }, [exerciseIndex, routineExercises]);
 
-  // Workout duration stopwatch
   useEffect(() => {
     if (workoutFinished || isPaused) return;
     const interval = setInterval(() => {
@@ -75,14 +153,12 @@ export default function WorkoutPlayer() {
     return () => clearInterval(interval);
   }, [workoutFinished, isPaused]);
 
-  // Rest timer countdown
   useEffect(() => {
     let timerInt;
     if (isResting && restTimer > 0) {
       timerInt = setInterval(() => {
         setRestTimer(t => {
           if (t <= 4 && t > 1 && soundEnabled) {
-            // Count down audio beep cue
             speakCue(`${t - 1}`);
           }
           if (t <= 1) {
@@ -97,7 +173,7 @@ export default function WorkoutPlayer() {
     return () => clearInterval(timerInt);
   }, [isResting, restTimer, soundEnabled]);
 
-  const handleCompleteSet = () => {
+  const handleCompleteSet = async () => {
     const newRecord = {
       exerciseId: currentExercise.id,
       setNumber: currentSet,
@@ -107,13 +183,30 @@ export default function WorkoutPlayer() {
 
     setCompletedSets(prev => [...prev, newRecord]);
 
+    // Backend set log call
+    if (sessionId) {
+      try {
+        await fetch(`${API_BASE}/workouts/sessions/${sessionId}/sets`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workout_exercise_id: currentExercise.id,
+            set_number: currentSet,
+            reps_completed: activeReps,
+            weight_kg: activeWeight
+          })
+        });
+      } catch (err) {
+        console.error("Error logging set:", err);
+      }
+    }
+
     if (currentSet < currentExercise.sets) {
       setCurrentSet(s => s + 1);
       setIsResting(true);
       setRestTimer(45);
       speakCue(`Set completed. Rest for 45 seconds.`);
     } else {
-      // Last set of exercise
       if (exerciseIndex < routineExercises.length - 1) {
         setExerciseIndex(idx => idx + 1);
         setCurrentSet(1);
@@ -121,9 +214,17 @@ export default function WorkoutPlayer() {
         setRestTimer(60);
         speakCue(`Exercise finished. Rest for 60 seconds.`);
       } else {
-        // Workout complete!
         setWorkoutFinished(true);
         speakCue("Congratulations! Workout complete!");
+
+        // Complete session in backend
+        if (sessionId) {
+          try {
+            await fetch(`${API_BASE}/workouts/sessions/${sessionId}/complete?user_id=1`, { method: "POST" });
+          } catch (err) {
+            console.error("Error completing session:", err);
+          }
+        }
       }
     }
   };
@@ -134,6 +235,15 @@ export default function WorkoutPlayer() {
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
+  if (loading) {
+    return (
+      <div className="surface p-8 text-center space-y-4 my-10 max-w-sm mx-auto">
+        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p className="text-xs text-zinc-400 font-bold">Loading Workout Session...</p>
+      </div>
+    );
+  }
+
   if (workoutFinished) {
     return (
       <div className="surface p-8 text-center space-y-6 my-10 max-w-lg mx-auto border border-emerald-500/50 bg-gradient-to-b from-zinc-900 via-zinc-900 to-emerald-950/40">
@@ -143,7 +253,7 @@ export default function WorkoutPlayer() {
 
         <div className="space-y-2">
           <h2 className="text-2xl font-black text-white">Workout Completed!</h2>
-          <p className="text-sm text-zinc-400">Great effort today. Muscle stimulus logged successfully.</p>
+          <p className="text-sm text-zinc-400">{routineTitle} finished successfully.</p>
         </div>
 
         <div className="grid grid-cols-3 gap-3 bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
@@ -175,7 +285,6 @@ export default function WorkoutPlayer() {
 
   return (
     <div className="space-y-5 pb-24">
-      {/* Top Header */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
@@ -185,7 +294,7 @@ export default function WorkoutPlayer() {
         </button>
 
         <div className="text-center">
-          <div className="text-xs text-zinc-500 font-medium">LIVE WORKOUT PLAYER</div>
+          <div className="text-xs text-emerald-400 font-bold tracking-wide uppercase">{routineTitle}</div>
           <div className="text-sm font-bold text-white">{formatDuration(workoutDuration)}</div>
         </div>
 
@@ -202,7 +311,6 @@ export default function WorkoutPlayer() {
         </button>
       </div>
 
-      {/* Rest Overlay Card */}
       {isResting ? (
         <div className="surface p-8 text-center space-y-5 border border-amber-500/50 bg-amber-950/20">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 text-xs font-bold border border-amber-500/30">
@@ -214,7 +322,7 @@ export default function WorkoutPlayer() {
           </div>
 
           <p className="text-xs text-zinc-400">
-            Up Next: Set {currentSet} of {currentExercise.name}
+            Up Next: Set {currentSet} of {currentExercise?.name}
           </p>
 
           <button
@@ -225,23 +333,21 @@ export default function WorkoutPlayer() {
           </button>
         </div>
       ) : (
-        /* Active Exercise Card */
         <div className="surface p-6 space-y-6 border border-zinc-800">
           <div className="flex items-center justify-between">
             <span className="badge bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-bold">
               EXERCISE {exerciseIndex + 1} OF {routineExercises.length}
             </span>
             <span className="text-xs text-zinc-400 font-semibold">
-              SET {currentSet} OF {currentExercise.sets}
+              SET {currentSet} OF {currentExercise?.sets}
             </span>
           </div>
 
           <div className="space-y-1">
-            <h2 className="text-2xl font-black text-white">{currentExercise.name}</h2>
-            <p className="text-xs text-emerald-400 font-medium">Target Muscle: {currentExercise.target}</p>
+            <h2 className="text-2xl font-black text-white">{currentExercise?.name}</h2>
+            <p className="text-xs text-emerald-400 font-medium">Target Muscle: {currentExercise?.target}</p>
           </div>
 
-          {/* Set Tracker Weight & Rep Adjuster */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800/80 text-center space-y-2">
               <span className="text-xs text-zinc-400 font-medium">Weight (kg)</span>
@@ -291,13 +397,12 @@ export default function WorkoutPlayer() {
         </div>
       )}
 
-      {/* Routine Progress Overview */}
       <div className="surface p-5 space-y-3">
         <h3 className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Routine Progress</h3>
         <div className="space-y-2">
           {routineExercises.map((ex, idx) => (
             <div
-              key={ex.id}
+              key={ex.id || idx}
               className={`p-3 rounded-xl flex items-center justify-between text-xs transition-all ${
                 idx === exerciseIndex
                   ? "bg-emerald-950/60 border border-emerald-500/50 text-white font-bold"

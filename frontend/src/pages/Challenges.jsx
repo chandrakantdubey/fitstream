@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   CalendarCheck,
   Flame,
   CheckCircle2,
-  Lock,
   Play,
-  Award,
-  ChevronRight,
-  ShieldAlert,
   Sparkles
 } from "lucide-react";
 
@@ -145,7 +142,6 @@ export default function Challenges() {
             )}
           </div>
 
-          {/* Progress bar */}
           {challengeDetails.user_progress.started && (
             <div className="mt-5 space-y-1.5">
               <div className="flex justify-between text-xs text-zinc-400 font-medium">
@@ -226,26 +222,23 @@ export default function Challenges() {
                       {dayItem.is_completed ? "Rested" : "Mark Rest Done"}
                     </button>
                   ) : (
-                    <button
-                      onClick={() => handleCompleteDay(dayItem.day)}
-                      className={`w-full py-1.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-all ${
-                        dayItem.is_completed
-                          ? "bg-emerald-950/80 text-emerald-300 border border-emerald-800/40"
-                          : dayItem.is_current
-                          ? "bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
-                          : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                      }`}
-                    >
-                      {dayItem.is_completed ? (
-                        <>
-                          <CheckCircle2 size={13} /> Completed
-                        </>
-                      ) : (
-                        <>
-                          <Play size={13} className="fill-current" /> Complete Day
-                        </>
+                    <div className="flex flex-col gap-1.5">
+                      <Link
+                        to={`/play/challenge-${selectedChallengeId}-day-${dayItem.day}`}
+                        className="btn-brand py-1.5 text-center text-xs font-bold flex items-center justify-center gap-1"
+                      >
+                        <Play size={12} className="fill-current" /> Start Routine
+                      </Link>
+
+                      {!dayItem.is_completed && (
+                        <button
+                          onClick={() => handleCompleteDay(dayItem.day)}
+                          className="text-[10px] text-zinc-400 hover:text-emerald-400 font-medium text-center"
+                        >
+                          Quick Complete
+                        </button>
                       )}
-                    </button>
+                    </div>
                   )}
                 </div>
               );

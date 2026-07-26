@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Sparkles, X, Target, Dumbbell, Calendar, Check, ChevronRight } from "lucide-react";
+import { Sparkles, X, ChevronRight } from "lucide-react";
+
+const API_BASE = "http://localhost:8000";
 
 export default function PlanGeneratorModal({ isOpen, onClose, onGenerate }) {
   const [step, setStep] = useState(1);
@@ -7,12 +9,73 @@ export default function PlanGeneratorModal({ isOpen, onClose, onGenerate }) {
   const [level, setLevel] = useState("Intermediate");
   const [equipment, setEquipment] = useState("Full Gym");
   const [days, setDays] = useState("4 Days");
+  const [saving, setSaving] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleFinish = () => {
-    onGenerate({ goal, level, equipment, days });
-    onClose();
+  const handleFinish = async () => {
+    try {
+      setSaving(true);
+      const preferences = { goal, level, equipment, days };
+      
+      // Save generated plan workouts to backend database
+      let planTitle = `${days} ${goal} Split`;
+      let routines = [];
+
+      if (days === "3 Days") {
+        routines = [
+          {
+            name: "Full Body A (Squat & Press)",
+            exercises: [
+              { exercise_id: "ex-1", order_index: 0, target_sets: 4, target_reps: 8, rest_seconds: 90 },
+              { exercise_id: "ex-2", order_index: 1, target_sets: 3, target_reps: 10, rest_seconds: 60 }
+            ]
+          },
+          {
+            name: "Full Body B (Hinge & Pull)",
+            exercises: [
+              { exercise_id: "ex-3", order_index: 0, target_sets: 4, target_reps: 8, rest_seconds: 90 },
+              { exercise_id: "ex-4", order_index: 1, target_sets: 3, target_reps: 10, rest_seconds: 60 }
+            ]
+          }
+        ];
+      } else {
+        routines = [
+          {
+            name: "Upper Body Hypertrophy",
+            exercises: [
+              { exercise_id: "ex-1", order_index: 0, target_sets: 4, target_reps: 8, rest_seconds: 90 },
+              { exercise_id: "ex-2", order_index: 1, target_sets: 3, target_reps: 10, rest_seconds: 60 }
+            ]
+          },
+          {
+            name: "Lower Body Strength",
+            exercises: [
+              { exercise_id: "ex-3", order_index: 0, target_sets: 4, target_reps: 8, rest_seconds: 90 },
+              { exercise_id: "ex-4", order_index: 1, target_sets: 3, target_reps: 10, rest_seconds: 60 }
+            ]
+          }
+        ];
+      }
+
+      for (const r of routines) {
+        await fetch(`${API_BASE}/workouts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: `${r.name} (${goal})`,
+            exercises: r.exercises
+          })
+        });
+      }
+
+      onGenerate({ title: planTitle, preferences, routines });
+      onClose();
+    } catch (err) {
+      console.error("Error saving generated plan:", err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -33,7 +96,6 @@ export default function PlanGeneratorModal({ isOpen, onClose, onGenerate }) {
           <p className="text-xs text-zinc-400">Step {step} of 4</p>
         </div>
 
-        {/* Step 1: Goal */}
         {step === 1 && (
           <div className="space-y-3">
             <label className="text-sm font-bold text-white block">What is your primary fitness goal?</label>
@@ -59,7 +121,6 @@ export default function PlanGeneratorModal({ isOpen, onClose, onGenerate }) {
           </div>
         )}
 
-        {/* Step 2: Level */}
         {step === 2 && (
           <div className="space-y-3">
             <label className="text-sm font-bold text-white block">What is your fitness experience level?</label>
@@ -84,7 +145,6 @@ export default function PlanGeneratorModal({ isOpen, onClose, onGenerate }) {
           </div>
         )}
 
-        {/* Step 3: Equipment */}
         {step === 3 && (
           <div className="space-y-3">
             <label className="text-sm font-bold text-white block">What equipment do you have access to?</label>
@@ -109,7 +169,6 @@ export default function PlanGeneratorModal({ isOpen, onClose, onGenerate }) {
           </div>
         )}
 
-        {/* Step 4: Days */}
         {step === 4 && (
           <div className="space-y-3">
             <label className="text-sm font-bold text-white block">How many days per week can you train?</label>
@@ -134,7 +193,6 @@ export default function PlanGeneratorModal({ isOpen, onClose, onGenerate }) {
           </div>
         )}
 
-        {/* Navigation Buttons */}
         <div className="flex gap-2 pt-3 border-t border-zinc-800">
           {step > 1 && (
             <button
@@ -153,10 +211,11 @@ export default function PlanGeneratorModal({ isOpen, onClose, onGenerate }) {
             </button>
           ) : (
             <button
+              disabled={saving}
               onClick={handleFinish}
               className="btn-brand flex-1 py-2.5 font-bold flex items-center justify-center gap-1"
             >
-              Generate Plan <Sparkles size={16} />
+              {saving ? "Saving..." : "Generate & Save Plan"} <Sparkles size={16} />
             </button>
           )}
         </div>
