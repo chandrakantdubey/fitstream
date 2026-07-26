@@ -13,12 +13,12 @@ export default function Register() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
+
   // Step 2 Physical Metrics
-  const [heightCm, setHeightCm] = useState(175);
-  const [weightKg, setWeightKg] = useState(70);
-  const [targetWeightKg, setTargetWeightKg] = useState(68);
-  const [age, setAge] = useState(25);
+  const [heightCm, setHeightCm] = useState("175");
+  const [weightKg, setWeightKg] = useState("70");
+  const [targetWeightKg, setTargetWeightKg] = useState("68");
+  const [age, setAge] = useState("25");
   const [gender, setGender] = useState("Male");
 
   // Step 3 Fitness Goal
@@ -30,19 +30,34 @@ export default function Register() {
     if (e) e.preventDefault();
     setError("");
 
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (!password || password.length < 4) {
+      setError("Password must be at least 4 characters long.");
+      return;
+    }
+
     try {
       setSubmitting(true);
+      const parsedHeight = parseFloat(heightCm);
+      const parsedWeight = parseFloat(weightKg);
+      const parsedTargetWeight = parseFloat(targetWeightKg);
+      const parsedAge = parseInt(age);
+
       const payload = {
-        email,
-        password,
-        full_name: fullName,
-        username: email.split("@")[0],
-        height_cm: parseFloat(heightCm) || 175,
-        weight_kg: parseFloat(weightKg) || 70,
-        target_weight_kg: parseFloat(targetWeightKg) || 68,
-        age: parseInt(age) || 25,
-        gender,
-        fitness_goal: fitnessGoal
+        email: cleanEmail,
+        password: password,
+        full_name: fullName.trim() || cleanEmail.split("@")[0],
+        username: cleanEmail.split("@")[0],
+        height_cm: isNaN(parsedHeight) ? 175.0 : parsedHeight,
+        weight_kg: isNaN(parsedWeight) ? 70.0 : parsedWeight,
+        target_weight_kg: isNaN(parsedTargetWeight) ? 68.0 : parsedTargetWeight,
+        age: isNaN(parsedAge) ? 25 : parsedAge,
+        gender: gender || "Male",
+        fitness_goal: fitnessGoal || "Muscle Growth"
       };
 
       const res = await fetch(`${API_BASE}/auth/register`, {
@@ -53,14 +68,21 @@ export default function Register() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.detail || "Registration failed");
+        let errMessage = "Registration failed";
+        if (typeof data.detail === "string") {
+          errMessage = data.detail;
+        } else if (Array.isArray(data.detail) && data.detail.length > 0) {
+          const firstErr = data.detail[0];
+          errMessage = `${firstErr.loc ? firstErr.loc.join(" -> ") + ": " : ""}${firstErr.msg}`;
+        }
+        throw new Error(errMessage);
       }
 
       // Automatically log user in
       login(data.access_token, data.user);
       navigate("/");
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Registration failed. Please check inputs.");
     } finally {
       setSubmitting(false);
     }
@@ -126,8 +148,12 @@ export default function Register() {
 
             <button
               onClick={() => {
-                if (!fullName || !email || !password) {
-                  setError("Please fill out all account fields.");
+                if (!email || !email.includes("@")) {
+                  setError("Please enter a valid email address.");
+                  return;
+                }
+                if (!password || password.length < 4) {
+                  setError("Password must be at least 4 characters long.");
                   return;
                 }
                 setError("");
@@ -198,7 +224,7 @@ export default function Register() {
             <div>
               <label className="text-xs text-zinc-400 block mb-1">Gender</label>
               <div className="grid grid-cols-2 gap-2">
-                {["Male", "Female"].map(g => (
+                {["Male", "Female"].map((g) => (
                   <button
                     key={g}
                     type="button"
@@ -242,7 +268,7 @@ export default function Register() {
               { id: "Muscle Growth", label: "Build Muscle & Strength", desc: "Hypertrophy focus with progressive overload" },
               { id: "Weight Loss", label: "Lose Weight & Burn Fat", desc: "High density circuits & calorie burn" },
               { id: "General Fitness", label: "Stay Fit & Healthy", desc: "Balanced full-body routines & cardio" }
-            ].map(g => (
+            ].map((g) => (
               <button
                 key={g.id}
                 type="button"
