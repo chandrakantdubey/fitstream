@@ -63,28 +63,29 @@ export default function Workouts() {
   };
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="page-title flex items-center gap-2">
-            <Dumbbell className="text-emerald-400" size={26} /> Workouts & Plans
+    <div className="space-y-6 pb-20 max-w-2xl mx-auto px-1">
+      {/* Header Container - Clean Layout without overflow */}
+      <div className="surface p-6 border border-zinc-800 space-y-4">
+        <div className="space-y-1">
+          <h1 className="page-title flex items-center gap-2 text-xl sm:text-2xl">
+            <Dumbbell className="text-emerald-400 shrink-0" size={26} /> Workouts & Plans
           </h1>
-          <p className="page-subtitle">
+          <p className="page-subtitle text-xs sm:text-sm text-zinc-400 mb-0">
             Create custom workout routines or generate personalized AI splits.
           </p>
         </div>
 
-        <div className="flex gap-2 w-full sm:w-auto">
+        {/* Buttons Row - Clean Inline/Wrap */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-800/80">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="btn-ghost text-xs px-3 py-2.5 flex items-center justify-center gap-1.5 flex-1 sm:flex-none shrink-0"
+            className="btn-ghost text-xs px-3.5 py-2.5 flex items-center justify-center gap-1.5 font-bold flex-1 sm:flex-initial"
           >
             <Plus size={15} /> Create Routine
           </button>
           <button
             onClick={() => setShowGenerator(true)}
-            className="btn-brand text-xs px-3.5 py-2.5 flex items-center justify-center gap-1.5 flex-1 sm:flex-none shrink-0"
+            className="btn-brand text-xs px-4 py-2.5 flex items-center justify-center gap-1.5 font-extrabold flex-1 sm:flex-initial shadow-md shadow-emerald-900/30"
           >
             <Sparkles size={15} /> AI Plan Wizard
           </button>
@@ -127,7 +128,7 @@ export default function Workouts() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {customWorkouts.map((w) => (
-              <div key={w.id} className="surface p-5 flex flex-col justify-between surface-hover space-y-3">
+              <div key={w.id} className="surface p-5 flex flex-col justify-between surface-hover space-y-3 border border-zinc-800">
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="badge text-[10px] text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
@@ -165,7 +166,7 @@ export default function Workouts() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {presets.map((tpl) => (
-            <div key={tpl.id} className="surface p-5 flex flex-col justify-between surface-hover space-y-4">
+            <div key={tpl.id} className="surface p-5 flex flex-col justify-between surface-hover space-y-4 border border-zinc-800">
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="badge text-[10px] text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
