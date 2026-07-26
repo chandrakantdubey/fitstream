@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
-import { Settings as SettingsIcon, Volume2, Database, LogOut, RotateCcw, ShieldAlert } from "lucide-react";
+import { Settings as SettingsIcon, Volume2, Database, LogOut, RotateCcw, ShieldAlert, Download } from "lucide-react";
 
 const API_BASE = "http://localhost:8000";
 
@@ -54,6 +54,10 @@ export default function Settings() {
     }
   };
 
+  const handleExportCSV = () => {
+    window.open(`${API_BASE}/export/csv?user_id=1`, "_blank");
+  };
+
   const handleDeleteAccount = async () => {
     try {
       await fetch(`${API_BASE}/auth/account`, { method: "DELETE" });
@@ -74,7 +78,7 @@ export default function Settings() {
           <SettingsIcon className="text-emerald-400" size={26} /> Settings & Profile
         </h1>
         <p className="page-subtitle">
-          Manage athlete profile, units, voice cues, and data reset preferences.
+          Manage athlete profile, units, voice cues, and data export preferences.
         </p>
       </div>
 
@@ -155,13 +159,26 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Reset & Account Controls */}
+      {/* Data Export & Reset Controls */}
       <div className="surface p-6 space-y-4 border border-zinc-800">
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <RotateCcw size={18} className="text-amber-400" /> Data Reset & Account Management
+          <Database size={18} className="text-emerald-400" /> Data Export & Account Management
         </h3>
 
         <div className="space-y-3">
+          <div className="flex items-center justify-between py-2 border-b border-zinc-800/80">
+            <div>
+              <div className="text-xs font-semibold text-white">Export Fitness History (CSV)</div>
+              <div className="text-[11px] text-zinc-400">Download daily logs, metrics, and completed workout sessions</div>
+            </div>
+            <button
+              onClick={handleExportCSV}
+              className="btn-brand text-xs px-3 py-1.5 font-bold flex items-center gap-1"
+            >
+              <Download size={14} /> Export CSV
+            </button>
+          </div>
+
           <div className="flex items-center justify-between py-2 border-b border-zinc-800/80">
             <div>
               <div className="text-xs font-semibold text-white">Reset Today's Metrics</div>
