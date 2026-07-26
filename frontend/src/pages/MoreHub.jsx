@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 import { BookOpen, MapPin, Sparkles, Settings, ChevronRight, TrendingUp } from "lucide-react";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export default function MoreHub() {
   const user = useAuthStore((state) => state.user);
@@ -31,7 +31,7 @@ export default function MoreHub() {
       desc: "Weight tracking, body measurements & performance trends",
       path: "/analytics",
       icon: TrendingUp,
-      color: "text-emerald-400",
+      color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10",
       badge: "BODY CHARTS"
     },
     {
@@ -39,7 +39,7 @@ export default function MoreHub() {
       desc: "Browse 1,300+ exercises with equipment & muscle filters",
       path: "/library",
       icon: BookOpen,
-      color: "text-blue-400",
+      color: "text-blue-400 border-blue-500/20 bg-blue-500/10",
       badge: "1,300+ EXERCISES"
     },
     {
@@ -47,7 +47,7 @@ export default function MoreHub() {
       desc: "Interactive Leaflet maps for running, cycling & walking",
       path: "/maps",
       icon: MapPin,
-      color: "text-cyan-400",
+      color: "text-cyan-400 border-cyan-500/20 bg-cyan-500/10",
       badge: "GPS TRACKER"
     },
     {
@@ -55,7 +55,7 @@ export default function MoreHub() {
       desc: "1RM Calculator, TDEE Macros & progressive overload science",
       path: "/knowledge",
       icon: Sparkles,
-      color: "text-amber-400",
+      color: "text-amber-400 border-amber-500/20 bg-amber-500/10",
       badge: "TRAINING WIKI"
     },
     {
@@ -63,7 +63,7 @@ export default function MoreHub() {
       desc: "Physical profile metrics, water goals, and account reset",
       path: "/settings",
       icon: Settings,
-      color: "text-zinc-400",
+      color: "text-zinc-400 border-zinc-700/50 bg-zinc-900",
       badge: "PROFILE & PREFS"
     }
   ];
@@ -78,7 +78,7 @@ export default function MoreHub() {
       </div>
 
       {/* User Quick Badge */}
-      <div className="surface p-5 border border-zinc-800 flex items-center justify-between">
+      <div className="card-gradient-emerald p-5 rounded-3xl flex items-center justify-between shadow-lg glow-emerald">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-extrabold text-base">
             {initials}
@@ -86,14 +86,14 @@ export default function MoreHub() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-bold text-white">{name}</h2>
-              <span className="badge text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-500/10">PRO</span>
+              <span className="badge text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-500/10">PRO ATHLETE</span>
             </div>
             <p className="text-xs text-zinc-400">{userProfile?.email || user?.email || "athlete@fitstream.app"}</p>
           </div>
         </div>
         <Link
           to="/settings"
-          className="btn-ghost text-xs py-2 px-3 flex items-center gap-1 font-bold"
+          className="btn-ghost text-xs py-2 px-3 flex items-center gap-1 font-bold border-emerald-500/30 text-emerald-400"
         >
           Profile <ChevronRight size={14} />
         </Link>
@@ -111,14 +111,14 @@ export default function MoreHub() {
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <div className={`p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 ${item.color}`}>
+                  <div className={`p-2.5 rounded-xl border ${item.color}`}>
                     <Icon size={20} />
                   </div>
-                  <span className="badge text-[10px]">{item.badge}</span>
+                  <span className="badge text-[10px] text-zinc-400 border-zinc-800 bg-zinc-950">{item.badge}</span>
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-white">{item.title}</h3>
-                  <p className="text-xs text-zinc-400 mt-0.5">{item.desc}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">{item.desc}</p>
                 </div>
               </div>
 

@@ -13,7 +13,7 @@ import {
   Plus
 } from "lucide-react";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export default function ProgressAnalytics() {
   const [dailyLog, setDailyLog] = useState(null);
@@ -43,7 +43,6 @@ export default function ProgressAnalytics() {
 
   const currentW = dailyLog?.weight_kg || 70.0;
   const targetW = dailyLog?.target_weight_kg || 68.0;
-  const height = dailyLog?.height_cm || 175.0;
   const diff = parseFloat((currentW - targetW).toFixed(1));
 
   return (
@@ -52,7 +51,7 @@ export default function ProgressAnalytics() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <TrendingUp className="text-emerald-400" size={26} /> Progress Analytics
+            <TrendingUp className="text-blue-400" size={26} /> Progress Analytics
           </h1>
           <p className="page-subtitle">
             Body weight progress toward target goal, measurement logs & activity history.
@@ -67,28 +66,28 @@ export default function ProgressAnalytics() {
       </div>
 
       {/* Weight Progress & Target Goal Card */}
-      <div className="surface p-6 border border-zinc-800 space-y-4">
+      <div className="card-gradient-blue p-6 rounded-3xl glow-blue space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-white font-bold text-base">
-            <Scale size={20} className="text-emerald-400" /> Weight Progress & Goal Target
+            <Scale size={20} className="text-blue-400" /> Weight Progress & Goal Target
           </div>
-          <span className="badge text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-500/10 font-bold">
+          <span className="badge text-[10px] text-blue-400 border-blue-500/30 bg-blue-500/10 font-bold">
             {dailyLog?.bmi_category || "Normal Weight"}
           </span>
         </div>
 
         <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
+          <div className="bg-zinc-950/80 p-4 rounded-2xl border border-zinc-800">
             <div className="text-xs text-zinc-400 font-medium">Current Weight</div>
             <div className="text-2xl font-black text-white mt-1">{currentW} <span className="text-xs text-zinc-500 font-normal">kg</span></div>
           </div>
 
-          <div className="bg-zinc-950 p-4 rounded-2xl border border-emerald-500/40">
-            <div className="text-xs text-emerald-400 font-medium">Target Weight</div>
-            <div className="text-2xl font-black text-emerald-400 mt-1">{targetW} <span className="text-xs text-zinc-500 font-normal">kg</span></div>
+          <div className="bg-zinc-950/80 p-4 rounded-2xl border border-blue-500/40">
+            <div className="text-xs text-blue-400 font-medium">Target Weight</div>
+            <div className="text-2xl font-black text-blue-400 mt-1">{targetW} <span className="text-xs text-zinc-500 font-normal">kg</span></div>
           </div>
 
-          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
+          <div className="bg-zinc-950/80 p-4 rounded-2xl border border-zinc-800">
             <div className="text-xs text-zinc-400 font-medium">Remaining</div>
             <div className="text-2xl font-black text-amber-400 mt-1">{Math.abs(diff)} <span className="text-xs text-zinc-500 font-normal">kg</span></div>
             <div className="text-[10px] text-zinc-500 mt-0.5">{diff > 0 ? "To Lose" : "To Gain"}</div>
@@ -99,11 +98,11 @@ export default function ProgressAnalytics() {
         <div className="space-y-1.5 pt-2">
           <div className="flex justify-between text-xs text-zinc-400 font-medium">
             <span>Goal Weight Gap</span>
-            <span className="text-emerald-400 font-bold">{diff === 0 ? "Goal Reached!" : `${Math.abs(diff)} kg remaining`}</span>
+            <span className="text-blue-400 font-bold">{diff === 0 ? "Goal Reached!" : `${Math.abs(diff)} kg remaining`}</span>
           </div>
-          <div className="w-full bg-zinc-800 h-3 rounded-full overflow-hidden border border-zinc-700/50">
+          <div className="w-full bg-zinc-950 h-3.5 rounded-full overflow-hidden border border-blue-500/30">
             <div
-              className="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full transition-all duration-300 rounded-full"
+              className="bg-gradient-to-r from-blue-600 to-cyan-400 h-full transition-all duration-500 rounded-full"
               style={{ width: `${Math.max(10, Math.min(100, 100 - (Math.abs(diff) / currentW) * 100))}%` }}
             ></div>
           </div>
@@ -117,28 +116,28 @@ export default function ProgressAnalytics() {
         </h3>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 text-center">
+          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800/80 text-center">
             <div className="text-xs text-zinc-500">Waist</div>
             <div className="text-xl font-extrabold text-white mt-1">
               {dailyLog?.waist_cm || "--"} <span className="text-xs text-zinc-500 font-normal">cm</span>
             </div>
           </div>
 
-          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 text-center">
+          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800/80 text-center">
             <div className="text-xs text-zinc-500">Chest</div>
             <div className="text-xl font-extrabold text-white mt-1">
               {dailyLog?.chest_cm || "--"} <span className="text-xs text-zinc-500 font-normal">cm</span>
             </div>
           </div>
 
-          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 text-center">
+          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800/80 text-center">
             <div className="text-xs text-zinc-500">Biceps</div>
             <div className="text-xl font-extrabold text-white mt-1">
               {dailyLog?.bicep_cm || "--"} <span className="text-xs text-zinc-500 font-normal">cm</span>
             </div>
           </div>
 
-          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 text-center">
+          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800/80 text-center">
             <div className="text-xs text-zinc-500">Thighs</div>
             <div className="text-xl font-extrabold text-white mt-1">
               {dailyLog?.thigh_cm || "--"} <span className="text-xs text-zinc-500 font-normal">cm</span>

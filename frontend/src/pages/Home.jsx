@@ -17,7 +17,7 @@ import {
   Activity
 } from "lucide-react";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export default function Home() {
   const [dailyLog, setDailyLog] = useState(null);
@@ -104,10 +104,10 @@ export default function Home() {
 
   // Ring calculations
   const activeMins = dailyLog?.active_minutes || 0;
-  const activePct = Math.min(100, Math.round((activeMins / 30) * 100)); // Target 30 mins
+  const activePct = Math.min(100, Math.round((activeMins / 30) * 100));
 
   const cals = dailyLog?.calories_burned || 0;
-  const calsPct = Math.min(100, Math.round((cals / 300) * 100)); // Target 300 kcal
+  const calsPct = Math.min(100, Math.round((cals / 300) * 100));
 
   const waterMl = dailyLog?.water_ml || 0;
   const waterTarget = dailyLog?.target_water_ml || 2450;
@@ -117,35 +117,36 @@ export default function Home() {
     { title: "7-Min Morning Warmup", duration: "7 min", level: "Beginner", area: "Full Body", id: "warmup-7" },
     { title: "10-Min Abs Scorcher", duration: "10 min", level: "Intermediate", area: "Core", id: "abs-10" },
     { title: "15-Min HIIT Fat Burn", duration: "15 min", level: "Advanced", area: "Cardio", id: "hiit-15" },
-    { title: "Bedtime Muscle Stretch", duration: "8 min", level: "All Levels", area: "Recovery", id: "stretch-8" }
+    { title: "Bedtime Stretch", duration: "8 min", level: "All Levels", area: "Recovery", id: "stretch-8" }
   ];
 
   return (
     <div className="space-y-6 pb-24 max-w-2xl mx-auto px-1">
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-zinc-900 to-zinc-900 border border-emerald-800/40 p-6 shadow-xl">
+      <div className="relative overflow-hidden rounded-3xl card-gradient-emerald p-6 shadow-xl glow-emerald">
         <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between relative z-10">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-3">
               <Sparkles size={13} /> FitStream Today
             </div>
             <h1 className="text-2xl font-extrabold text-white tracking-tight">Keep Moving Forward!</h1>
-            <p className="text-sm text-zinc-400 mt-1">Track workouts, hydration & physical metrics</p>
+            <p className="text-xs text-zinc-400 mt-1 font-medium">Track workouts, hydration & physical metrics</p>
           </div>
-          <div className="flex flex-col items-center justify-center bg-zinc-900/90 border border-amber-500/30 p-3.5 rounded-2xl shadow-lg">
-            <Flame size={28} className="text-amber-500 animate-pulse fill-amber-500" />
-            <span className="text-xl font-bold text-white mt-1">{streakData?.current_streak || 0}</span>
-            <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-wider">Day Streak</span>
+
+          <div className="flex flex-col items-center justify-center bg-zinc-900/90 border border-amber-500/30 p-3.5 rounded-2xl shadow-lg glow-amber">
+            <Flame size={26} className="text-amber-400 animate-pulse fill-amber-400" />
+            <span className="text-xl font-black text-white mt-1">{streakData?.current_streak || 0}</span>
+            <span className="text-[10px] text-amber-400/90 font-bold uppercase tracking-wider">Day Streak</span>
           </div>
         </div>
       </div>
 
       {/* 3 Dynamic Activity Progress Rings */}
-      <div className="surface p-6 border border-zinc-800 space-y-4">
+      <div className="surface p-6 border border-zinc-800/80 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <Activity size={18} className="text-emerald-400" /> Daily Goal Progress Rings
+            <Activity size={18} className="text-emerald-400" /> Daily Activity Progress
           </h3>
           <Link
             to="/analytics"
@@ -157,10 +158,10 @@ export default function Home() {
 
         <div className="grid grid-cols-3 gap-3 text-center">
           {/* Active Minutes Ring */}
-          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 flex flex-col items-center justify-between space-y-2">
+          <div className="bg-zinc-950/80 p-4 rounded-2xl border border-emerald-500/20 flex flex-col items-center justify-between space-y-2 glow-emerald">
             <div className="relative w-16 h-16 flex items-center justify-center">
               <svg className="w-16 h-16 transform -rotate-90">
-                <circle cx="32" cy="32" r="26" stroke="#27272a" strokeWidth="6" fill="transparent" />
+                <circle cx="32" cy="32" r="26" stroke="#18181b" strokeWidth="6" fill="transparent" />
                 <circle
                   cx="32"
                   cy="32"
@@ -183,10 +184,10 @@ export default function Home() {
           </div>
 
           {/* Calories Burned Ring */}
-          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 flex flex-col items-center justify-between space-y-2">
+          <div className="bg-zinc-950/80 p-4 rounded-2xl border border-amber-500/20 flex flex-col items-center justify-between space-y-2 glow-amber">
             <div className="relative w-16 h-16 flex items-center justify-center">
               <svg className="w-16 h-16 transform -rotate-90">
-                <circle cx="32" cy="32" r="26" stroke="#27272a" strokeWidth="6" fill="transparent" />
+                <circle cx="32" cy="32" r="26" stroke="#18181b" strokeWidth="6" fill="transparent" />
                 <circle
                   cx="32"
                   cy="32"
@@ -209,10 +210,10 @@ export default function Home() {
           </div>
 
           {/* Hydration Goal Ring */}
-          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800 flex flex-col items-center justify-between space-y-2">
+          <div className="bg-zinc-950/80 p-4 rounded-2xl border border-blue-500/20 flex flex-col items-center justify-between space-y-2 glow-blue">
             <div className="relative w-16 h-16 flex items-center justify-center">
               <svg className="w-16 h-16 transform -rotate-90">
-                <circle cx="32" cy="32" r="26" stroke="#27272a" strokeWidth="6" fill="transparent" />
+                <circle cx="32" cy="32" r="26" stroke="#18181b" strokeWidth="6" fill="transparent" />
                 <circle
                   cx="32"
                   cy="32"
@@ -230,7 +231,7 @@ export default function Home() {
             </div>
             <div>
               <div className="text-base font-extrabold text-white">{waterMl} <span className="text-[10px] text-zinc-400">ml</span></div>
-              <div className="text-[10px] text-blue-300 font-semibold mt-0.5">{waterPct}% Hydrated</div>
+              <div className="text-[10px] text-blue-400 font-semibold mt-0.5">{waterPct}% Hydrated</div>
             </div>
           </div>
         </div>
@@ -264,7 +265,7 @@ export default function Home() {
               {dailyLog?.weight_kg || 70} <span className="text-xs font-normal text-zinc-400">kg</span>
             </div>
             {dailyLog?.target_weight_kg && (
-              <div className="text-[10px] text-emerald-400 mt-0.5">Target: {dailyLog.target_weight_kg} kg</div>
+              <div className="text-[10px] text-emerald-400 mt-0.5 font-bold">Target: {dailyLog.target_weight_kg} kg</div>
             )}
           </div>
 
@@ -287,78 +288,78 @@ export default function Home() {
       </div>
 
       {/* Hydration Tracker Widget */}
-      <div className="surface p-6 border border-blue-900/30">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              <Droplet size={22} className="fill-blue-400" />
+      <div className="card-gradient-blue p-6 rounded-3xl glow-blue space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <Droplet size={24} className="fill-blue-400" />
             </div>
             <div>
               <h3 className="text-base font-bold text-white">Hydration Tracker</h3>
               <p className="text-xs text-zinc-400">Target: {waterTarget} ml / day (weight based)</p>
             </div>
           </div>
-          <span className="text-xl font-extrabold text-blue-400">{waterMl} ml</span>
+          <span className="text-2xl font-black text-blue-400">{waterMl} <span className="text-xs text-zinc-400 font-normal">ml</span></span>
         </div>
 
-        <div className="w-full bg-zinc-800 rounded-full h-3.5 overflow-hidden mb-4 border border-zinc-700/50">
+        <div className="w-full bg-zinc-950 rounded-full h-3.5 overflow-hidden border border-blue-500/30">
           <div
-            className="bg-gradient-to-r from-blue-600 to-cyan-400 h-full transition-all duration-300 rounded-full"
+            className="bg-gradient-to-r from-blue-600 to-cyan-400 h-full transition-all duration-500 rounded-full"
             style={{ width: `${waterPct}%` }}
           ></div>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
           <button
             onClick={() => addWater(250)}
-            className="py-2.5 px-3 bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 text-xs font-semibold rounded-xl border border-blue-800/40 flex items-center justify-center gap-1 transition-all"
+            className="py-2.5 px-3 bg-blue-950/80 hover:bg-blue-900/90 text-blue-300 text-xs font-bold rounded-xl border border-blue-500/30 flex items-center justify-center gap-1 transition-all active:scale-95"
           >
             <Plus size={14} /> +250 ml
           </button>
           <button
             onClick={() => addWater(500)}
-            className="py-2.5 px-3 bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 text-xs font-semibold rounded-xl border border-blue-800/40 flex items-center justify-center gap-1 transition-all"
+            className="py-2.5 px-3 bg-blue-950/80 hover:bg-blue-900/90 text-blue-300 text-xs font-bold rounded-xl border border-blue-500/30 flex items-center justify-center gap-1 transition-all active:scale-95"
           >
             <Plus size={14} /> +500 ml
           </button>
           <button
             onClick={() => addWater(750)}
-            className="py-2.5 px-3 bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 text-xs font-semibold rounded-xl border border-blue-800/40 flex items-center justify-center gap-1 transition-all"
+            className="py-2.5 px-3 bg-blue-950/80 hover:bg-blue-900/90 text-blue-300 text-xs font-bold rounded-xl border border-blue-500/30 flex items-center justify-center gap-1 transition-all active:scale-95"
           >
             <Plus size={14} /> +750 ml
           </button>
           <button
             onClick={() => setShowCustomWaterModal(true)}
-            className="py-2.5 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold rounded-xl border border-zinc-700/50 flex items-center justify-center gap-1 transition-all col-span-3 sm:col-span-1"
+            className="py-2.5 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold rounded-xl border border-zinc-700/50 flex items-center justify-center gap-1 transition-all col-span-3 sm:col-span-1"
           >
-            Custom Amount
+            Custom
           </button>
         </div>
       </div>
 
-      {/* Target Area Quick Workouts */}
+      {/* Quick Workouts Grid */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-bold text-white">Quick Routines</h2>
-          <Link to="/workouts" className="text-xs text-emerald-400 hover:underline font-medium">View All</Link>
+          <Link to="/workouts" className="text-xs text-emerald-400 hover:underline font-bold">View All</Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {quickWorkouts.map((w) => (
             <div key={w.id} className="surface p-4 flex items-center justify-between surface-hover border border-zinc-800">
               <div className="space-y-1">
-                <h4 className="text-sm font-semibold text-white">{w.title}</h4>
+                <h4 className="text-sm font-bold text-white">{w.title}</h4>
                 <div className="flex items-center gap-2 text-xs text-zinc-400">
                   <span>{w.duration}</span>
                   <span>•</span>
-                  <span className="text-emerald-400">{w.area}</span>
+                  <span className="text-emerald-400 font-semibold">{w.area}</span>
                   <span>•</span>
                   <span className="text-zinc-500">{w.level}</span>
                 </div>
               </div>
               <Link
                 to={`/play/quick-${w.id}`}
-                className="p-2.5 rounded-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white border border-emerald-500/30 transition-all"
+                className="p-2.5 rounded-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-zinc-950 border border-emerald-500/30 transition-all shadow-md"
               >
                 <Play size={16} className="fill-current" />
               </Link>
@@ -472,7 +473,7 @@ export default function Home() {
                     setCustomWaterInput("");
                   }
                 }}
-                className="btn-brand flex-1 py-2.5 font-bold"
+                className="btn-blue flex-1 py-2.5 font-bold"
               >
                 Add Water
               </button>
