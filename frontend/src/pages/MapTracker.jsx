@@ -1,132 +1,92 @@
 import { useState, useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from "react-leaflet";
+import { MapPin, Navigation, Play, Square, Flame, Clock, Gauge, Activity, Award, ArrowLeft } from "lucide-react";
 import L from "leaflet";
-import {
-  MapPin,
-  Play,
-  Square,
-  Navigation,
-  Compass,
-  Zap,
-  Clock,
-  History,
-  Trash2,
-  Check
-} from "lucide-react";
+import "leaflet/dist/leaflet.css";
 
 const API_BASE = "http://localhost:8000";
 
-// Custom marker icon fix for Leaflet in React
-const customIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
-});
-
-function RecenterMap({ position }) {
-  const map = useMap();
-  useEffect(() => {
-    if (position) {
-      map.setView(position, 16);
-    }
-  }, [position, map]);
-  return null;
-}
-
 export default function MapTracker() {
+  const [tracking, setTracking] = useState(false);
   const [activityType, setActivityType] = useState("Running");
-  const [isTracking, setIsTracking] = useState(false);
-  const [routeCoords, setRouteCoords] = useState([]);
-  const [currentPos, setCurrentPos] = useState([37.7749, -122.4194]); // Default San Francisco coordinates
+  const [routeCoordinates, setRouteCoordinates] = useState([]);
+  const [distanceKm, setDistanceKm] = useState(0.0);
   const [elapsedSec, setElapsedSec] = useState(0);
-  const [distanceKm, setDistanceKm] = useState(0);
-  const [savedRoutes, setSavedRoutes] = useState([]);
-  const [loadingRoutes, setLoadingRoutes] = useState(true);
+  const [pastRoutes, setPastRoutes] = useState([]);
+  const [summaryData, setSummaryData] = useState(null);
 
-  // Fetch saved routes
-  const fetchRoutes = async () => {
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const polylineRef = useRef(null);
+  const markerRef = useRef(null);
+
+  useEffect(() => {
+    if (!mapInstanceRef.current && mapRef.current) {
+      const map = L.map(mapRef.current).setView([28.6139, 77.2090], 15);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+      polylineRef.current = L.polyline([], { color: "#10b981", weight: 5 }).addTo(map);
+    }
+  }, []);
+
+  const fetchPastRoutes = async () => {
     try {
-      setLoadingRoutes(true);
       const res = await fetch(`${API_BASE}/maps/routes?user_id=1`);
       const data = await res.json();
-      setSavedRoutes(data);
+      setPastRoutes(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Error fetching map routes:", err);
-    } finally {
-      setLoadingRoutes(false);
+      console.error("Error loading routes:", err);
     }
   };
 
   useEffect(() => {
-    fetchRoutes();
-
-    // Get initial geolocation if available
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const latLng = [pos.coords.latitude, pos.coords.longitude];
-          setCurrentPos(latLng);
-        },
-        (err) => console.log("Geolocation prompt skipped or rejected", err),
-        { enableHighAccuracy: true }
-      );
-    }
+    fetchPastRoutes();
   }, []);
 
-  // Timer & Location recorder interval
   useEffect(() => {
-    let timerInt;
-    let gpsWatch;
-
-    if (isTracking) {
-      timerInt = setInterval(() => {
+    let int;
+    if (tracking) {
+      int = setInterval(() => {
         setElapsedSec(s => s + 1);
       }, 1000);
-
-      if ("geolocation" in navigator) {
-        gpsWatch = navigator.geolocation.watchPosition(
-          (pos) => {
-            const newPoint = [pos.coords.latitude, pos.coords.longitude];
-            setCurrentPos(newPoint);
-            setRouteCoords(prev => {
-              if (prev.length > 0) {
-                const last = prev[prev.length - 1];
-                // Calculate distance step
-                const stepDist = calculateDistance(last[0], last[1], newPoint[0], newPoint[1]);
-                setDistanceKm(d => d + stepDist);
-              }
-              return [...prev, newPoint];
-            });
-          },
-          (err) => console.log("GPS watch error", err),
-          { enableHighAccuracy: true, distanceFilter: 2 }
-        );
-      } else {
-        // Mock simulation movement for testing without physical GPS movement
-        const mockInterval = setInterval(() => {
-          setCurrentPos(prev => {
-            const nextLat = prev[0] + 0.0001;
-            const nextLng = prev[1] + 0.0001;
-            const newPoint = [nextLat, nextLng];
-            setRouteCoords(c => [...c, newPoint]);
-            setDistanceKm(d => d + 0.015);
-            return newPoint;
-          });
-        }, 3000);
-        return () => clearInterval(mockInterval);
-      }
     }
+    return () => clearInterval(int);
+  }, [tracking]);
 
+  useEffect(() => {
+    let watchId;
+    if (tracking && navigator.geolocation) {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const newPoint = [lat, lng];
+
+          setRouteCoordinates((prev) => {
+            if (prev.length > 0) {
+              const last = prev[prev.length - 1];
+              const addedDist = calculateDistance(last[0], last[1], lat, lng);
+              setDistanceKm((d) => parseFloat((d + addedDist).toFixed(2)));
+            }
+            const updated = [...prev, newPoint];
+            if (polylineRef.current) polylineRef.current.setLatLngs(updated);
+            if (mapInstanceRef.current) mapInstanceRef.current.panTo(newPoint);
+            return updated;
+          });
+        },
+        (err) => console.error("Geolocation error:", err),
+        { enableHighAccuracy: true, distanceFilter: 5 }
+      );
+    }
     return () => {
-      clearInterval(timerInt);
-      if (gpsWatch) navigator.geolocation.clearWatch(gpsWatch);
+      if (watchId && navigator.geolocation) navigator.geolocation.clearWatch(watchId);
     };
-  }, [isTracking]);
+  }, [tracking]);
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Earth radius in km
+    const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
     const a =
@@ -140,47 +100,47 @@ export default function MapTracker() {
   };
 
   const handleStartTracking = () => {
-    setRouteCoords([currentPos]);
+    setRouteCoordinates([]);
+    setDistanceKm(0.0);
     setElapsedSec(0);
-    setDistanceKm(0);
-    setIsTracking(true);
+    setTracking(true);
+    setSummaryData(null);
   };
 
   const handleStopTracking = async () => {
-    setIsTracking(false);
-    if (distanceKm > 0.01 || routeCoords.length > 1) {
-      try {
-        const payload = {
-          user_id: 1,
-          title: `Outdoor ${activityType}`,
-          activity_type: activityType,
-          distance_km: parseFloat(distanceKm.toFixed(2)),
-          duration_seconds: elapsedSec,
-          avg_speed_kmh: elapsedSec > 0 ? parseFloat(((distanceKm / (elapsedSec / 3600))).toFixed(1)) : 0,
-          calories_burned: Math.round(distanceKm * 65), // ~65 kcal/km estimate
-          elevation_gain_m: 12.5,
-          coordinates: routeCoords.map(c => ({ lat: c[0], lng: c[1] }))
-        };
+    setTracking(false);
+    const avgSpeed = elapsedSec > 0 ? parseFloat(((distanceKm / (elapsedSec / 3600))).toFixed(1)) : 0;
+    const cals = Math.round(distanceKm * 65);
+    const minsPerKm = distanceKm > 0 ? parseFloat(((elapsedSec / 60) / distanceKm).toFixed(2)) : 0;
 
-        await fetch(`${API_BASE}/maps/route`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
+    const summary = {
+      activity: activityType,
+      distanceKm,
+      elapsedSec,
+      avgSpeed,
+      minsPerKm,
+      cals
+    };
 
-        fetchRoutes();
-      } catch (err) {
-        console.error("Error saving route:", err);
-      }
-    }
-  };
+    setSummaryData(summary);
 
-  const handleDeleteRoute = async (id) => {
     try {
-      await fetch(`${API_BASE}/maps/routes/${id}?user_id=1`, { method: "DELETE" });
-      fetchRoutes();
+      await fetch(`${API_BASE}/maps/routes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: "1",
+          activity_type: activityType,
+          distance_km: distanceKm,
+          duration_seconds: elapsedSec,
+          avg_speed_kmh: avgSpeed,
+          calories_burned: cals,
+          coordinates: routeCoordinates
+        })
+      });
+      fetchPastRoutes();
     } catch (err) {
-      console.error("Error deleting route:", err);
+      console.error("Error saving route:", err);
     }
   };
 
@@ -191,27 +151,25 @@ export default function MapTracker() {
   };
 
   return (
-    <div className="space-y-5 pb-24">
-      {/* Header */}
+    <div className="space-y-6 pb-24 max-w-2xl mx-auto px-1">
       <div>
         <h1 className="page-title flex items-center gap-2">
-          <MapPin className="text-emerald-400" size={26} /> Outdoor GPS Map Tracker
+          <MapPin className="text-blue-400" size={26} /> Outdoor GPS Maps
         </h1>
         <p className="page-subtitle">
-          Record outdoor runs, walks, and cycling activities with Leaflet route drawing.
+          Track real-time distance, speed, pace & route polylines for outdoor runs & walks.
         </p>
       </div>
 
       {/* Activity Type Selector */}
       <div className="flex gap-2">
-        {["Running", "Cycling", "Walking"].map((act) => (
+        {["Running", "Outdoor Cycling", "Walking"].map((act) => (
           <button
             key={act}
-            disabled={isTracking}
             onClick={() => setActivityType(act)}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+            className={`flex-1 py-2.5 rounded-2xl text-xs font-bold transition-all border ${
               activityType === act
-                ? "bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-900/30"
+                ? "bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-900/30"
                 : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-700"
             }`}
           >
@@ -220,113 +178,113 @@ export default function MapTracker() {
         ))}
       </div>
 
-      {/* Leaflet Interactive Map Container */}
-      <div className="surface overflow-hidden rounded-3xl border border-zinc-800 relative shadow-2xl h-80 z-0">
-        <MapContainer
-          center={currentPos}
-          zoom={16}
-          scrollWheelZoom={true}
-          style={{ height: "100%", width: "100%" }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <RecenterMap position={currentPos} />
+      {/* Live Telemetry Display */}
+      <div className="grid grid-cols-4 gap-2 text-center">
+        <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800">
+          <div className="text-[10px] text-zinc-400 uppercase">Distance</div>
+          <div className="text-xl font-black text-white mt-1">{distanceKm}</div>
+          <div className="text-[10px] text-zinc-500">km</div>
+        </div>
 
-          {/* User location marker */}
-          <Marker position={currentPos} icon={customIcon}>
-            <Popup>Current Location ({activityType})</Popup>
-          </Marker>
+        <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800">
+          <div className="text-[10px] text-zinc-400 uppercase">Time</div>
+          <div className="text-xl font-black text-white mt-1">{formatTime(elapsedSec)}</div>
+          <div className="text-[10px] text-zinc-500">elapsed</div>
+        </div>
 
-          {/* Polyline Route */}
-          {routeCoords.length > 1 && (
-            <Polyline
-              positions={routeCoords}
-              color="#10b981"
-              weight={5}
-              opacity={0.9}
-            />
-          )}
-        </MapContainer>
+        <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800">
+          <div className="text-[10px] text-zinc-400 uppercase">Speed</div>
+          <div className="text-xl font-black text-emerald-400 mt-1">
+            {elapsedSec > 0 ? ((distanceKm / (elapsedSec / 3600)) || 0).toFixed(1) : 0}
+          </div>
+          <div className="text-[10px] text-zinc-500">km/h</div>
+        </div>
 
-        {/* Live GPS Overlay stats */}
-        <div className="absolute top-4 left-4 right-4 bg-zinc-950/90 backdrop-blur-md p-3.5 rounded-2xl border border-zinc-800 flex justify-between text-center z-[1000] shadow-lg">
-          <div>
-            <div className="text-xs text-zinc-400 font-medium">Distance</div>
-            <div className="text-lg font-black text-white">{distanceKm.toFixed(2)} <span className="text-xs text-emerald-400">km</span></div>
-          </div>
-          <div>
-            <div className="text-xs text-zinc-400 font-medium">Duration</div>
-            <div className="text-lg font-black text-white">{formatTime(elapsedSec)}</div>
-          </div>
-          <div>
-            <div className="text-xs text-zinc-400 font-medium">Avg Speed</div>
-            <div className="text-lg font-black text-white">
-              {elapsedSec > 0 ? (distanceKm / (elapsedSec / 3600)).toFixed(1) : "0.0"} <span className="text-xs text-zinc-400">km/h</span>
-            </div>
-          </div>
+        <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800">
+          <div className="text-[10px] text-zinc-400 uppercase">Est. Burn</div>
+          <div className="text-xl font-black text-amber-400 mt-1">{Math.round(distanceKm * 65)}</div>
+          <div className="text-[10px] text-zinc-500">kcal</div>
         </div>
       </div>
 
-      {/* Start / Stop Control Buttons */}
-      {!isTracking ? (
-        <button
-          onClick={handleStartTracking}
-          className="btn-brand w-full py-4 text-base font-extrabold flex items-center justify-center gap-2 shadow-xl shadow-emerald-900/30"
-        >
-          <Play size={20} className="fill-current" /> Start {activityType} Tracker
-        </button>
-      ) : (
-        <button
-          onClick={handleStopTracking}
-          className="btn-danger w-full py-4 text-base font-extrabold flex items-center justify-center gap-2 shadow-xl shadow-red-900/20"
-        >
-          <Square size={20} className="fill-current" /> Stop & Save Activity
-        </button>
+      {/* Leaflet Map Canvas */}
+      <div className="surface p-2 border border-zinc-800 overflow-hidden relative">
+        <div ref={mapRef} className="w-full h-72 rounded-2xl z-10"></div>
+        <div className="absolute bottom-4 right-4 z-20">
+          {!tracking ? (
+            <button
+              onClick={handleStartTracking}
+              className="btn-brand px-6 py-3 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-emerald-900/40"
+            >
+              <Play size={16} className="fill-current" /> Start GPS Tracking
+            </button>
+          ) : (
+            <button
+              onClick={handleStopTracking}
+              className="btn-danger px-6 py-3 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-red-900/40"
+            >
+              <Square size={16} className="fill-current" /> Finish & Save Session
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Post-Run Performance Summary Modal */}
+      {summaryData && (
+        <div className="surface p-6 border border-emerald-500/50 bg-gradient-to-r from-zinc-900 via-zinc-900 to-emerald-950/40 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Award className="text-emerald-400" size={20} />
+              <h3 className="text-base font-bold text-white">Activity Session Saved!</h3>
+            </div>
+            <button onClick={() => setSummaryData(null)} className="text-xs text-zinc-500 hover:text-white">
+              Close
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800">
+              <div className="text-lg font-black text-white">{summaryData.distanceKm} km</div>
+              <div className="text-[10px] text-zinc-400 uppercase">Distance</div>
+            </div>
+            <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800">
+              <div className="text-lg font-black text-emerald-400">{summaryData.avgSpeed} km/h</div>
+              <div className="text-[10px] text-zinc-400 uppercase">Avg Speed</div>
+            </div>
+            <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800">
+              <div className="text-lg font-black text-amber-400">{summaryData.cals} kcal</div>
+              <div className="text-[10px] text-zinc-400 uppercase">Burned</div>
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Saved Routes History */}
-      <div className="space-y-3">
-        <h3 className="text-base font-bold text-white flex items-center gap-2">
-          <History size={18} className="text-emerald-400" /> Saved Outdoor Activities
-        </h3>
-
-        {savedRoutes.length === 0 ? (
-          <div className="surface p-6 text-center text-xs text-zinc-500">
-            No outdoor activities recorded yet. Hit start to record your first run or ride!
-          </div>
-        ) : (
+      {/* Past Activity History */}
+      {pastRoutes.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-base font-bold text-white">Previous GPS Activities</h3>
           <div className="space-y-2">
-            {savedRoutes.map((r) => (
-              <div key={r.id} className="surface p-4 flex items-center justify-between">
+            {pastRoutes.map((rt) => (
+              <div key={rt.id} className="surface p-4 flex items-center justify-between border border-zinc-800">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="badge bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-bold">
-                      {r.activity_type}
+                    <span className="badge text-[10px] text-blue-400 border-blue-500/30 bg-blue-500/10">
+                      {rt.activity_type}
                     </span>
-                    <span className="text-xs font-bold text-white">{r.title}</span>
+                    <span className="text-xs text-zinc-400">{rt.created_at ? rt.created_at.slice(0, 10) : "Recent"}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-zinc-400">
-                    <span>{r.distance_km} km</span>
-                    <span>•</span>
-                    <span>{formatTime(r.duration_seconds)}</span>
-                    <span>•</span>
-                    <span className="text-amber-400">{r.calories_burned} kcal</span>
-                  </div>
+                  <div className="text-sm font-bold text-white">{rt.distance_km} km</div>
                 </div>
 
-                <button
-                  onClick={() => handleDeleteRoute(r.id)}
-                  className="p-2 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-zinc-800"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="text-right">
+                  <div className="text-xs font-bold text-emerald-400">{rt.avg_speed_kmh} km/h</div>
+                  <div className="text-[10px] text-zinc-500">{formatTime(rt.duration_seconds || 0)}</div>
+                </div>
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,7 +10,8 @@ import {
   Flame,
   CheckCircle2,
   RotateCcw,
-  X
+  X,
+  Info
 } from "lucide-react";
 
 const API_BASE = "http://localhost:8000";
@@ -73,7 +74,7 @@ export default function WorkoutPlayer() {
         } else if (workoutId.startsWith("challenge-")) {
           title = "30-Day Challenge Session";
           exercises = [
-            { id: "c1", name: "Challenge Crunches", target: "Abs", sets: 3, reps: 15, defaultWeight: 0 },
+            { id: "c1", name: "Target Crunches", target: "Abs", sets: 3, reps: 15, defaultWeight: 0 },
             { id: "c2", name: "Plank Hold", target: "Core", sets: 3, reps: 30, defaultWeight: 0 },
             { id: "c3", name: "Mountain Climbers", target: "Full Body", sets: 3, reps: 20, defaultWeight: 0 }
           ];
@@ -292,7 +293,7 @@ export default function WorkoutPlayer() {
   }
 
   return (
-    <div className="space-y-5 pb-24">
+    <div className="space-y-5 pb-24 max-w-2xl mx-auto px-1">
       {/* Header */}
       <div className="flex items-center justify-between">
         <button
@@ -366,6 +367,15 @@ export default function WorkoutPlayer() {
           <div className="space-y-1">
             <h2 className="text-2xl font-black text-white">{currentExercise?.name}</h2>
             <p className="text-xs text-emerald-400 font-medium">Target Muscle: {currentExercise?.target}</p>
+          </div>
+
+          {/* Form Execution Cue Card */}
+          <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800/80 flex items-start gap-2.5">
+            <Info size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+            <div className="text-xs text-zinc-300">
+              <span className="font-bold text-white">Form Execution Tip: </span>
+              Maintain core contraction, keep shoulders retracted, and perform full range of motion.
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

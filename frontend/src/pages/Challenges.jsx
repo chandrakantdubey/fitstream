@@ -9,7 +9,10 @@ import {
   RotateCcw,
   Coffee,
   X,
-  Dumbbell
+  Dumbbell,
+  Award,
+  Crown,
+  Timer
 } from "lucide-react";
 
 const API_BASE = "http://localhost:8000";
@@ -20,6 +23,9 @@ export default function Challenges() {
   const [challengeDetails, setChallengeDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeDayModal, setActiveDayModal] = useState(null);
+  const [showRestPlayer, setShowRestPlayer] = useState(false);
+  const [restTimerSec, setRestTimerSec] = useState(45);
+  const [restStepIndex, setRestStepIndex] = useState(0);
 
   const fetchCatalog = async () => {
     try {
@@ -53,6 +59,16 @@ export default function Challenges() {
       fetchDetails(selectedChallengeId);
     }
   }, [selectedChallengeId]);
+
+  useEffect(() => {
+    let int;
+    if (showRestPlayer && restTimerSec > 0) {
+      int = setInterval(() => {
+        setRestTimerSec(t => t - 1);
+      }, 1000);
+    }
+    return () => clearInterval(int);
+  }, [showRestPlayer, restTimerSec]);
 
   const handleStartChallenge = async (id) => {
     try {
@@ -89,10 +105,19 @@ export default function Challenges() {
       });
       fetchDetails(selectedChallengeId);
       setActiveDayModal(null);
+      setShowRestPlayer(false);
     } catch (err) {
       console.error("Error completing day:", err);
     }
   };
+
+  const completedCount = challengeDetails?.user_progress?.completed_days?.length || 0;
+
+  const restStretches = [
+    { title: "Cobra Abdominal Stretch", duration: "45 sec", desc: "Extend arms, press hips into ground, and lift chest." },
+    { title: "Child's Spine Pose", duration: "60 sec", desc: "Sit back on heels, stretch arms forward, and sink chest." },
+    { title: "Cat-Cow Spine Mobility", duration: "45 sec", desc: "Alternate arching and rounding spine steadily." }
+  ];
 
   return (
     <div className="space-y-6 pb-20 max-w-2xl mx-auto px-1">
@@ -129,7 +154,7 @@ export default function Challenges() {
 
       {/* Challenge Hero Card */}
       {challengeDetails && (
-        <div className="surface p-6 relative overflow-hidden bg-gradient-to-r from-zinc-900 via-zinc-900 to-emerald-950/40 border border-zinc-800">
+        <div className="surface p-6 relative overflow-hidden bg-gradient-to-r from-zinc-900 via-zinc-900 to-emerald-950/40 border border-zinc-800 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -155,7 +180,7 @@ export default function Challenges() {
               <div className="flex flex-col items-center gap-2 shrink-0">
                 <div className="bg-zinc-950/90 border border-emerald-800/40 px-5 py-3 rounded-2xl text-center min-w-[140px]">
                   <div className="text-2xl font-black text-emerald-400">
-                    {challengeDetails.user_progress.completed_days.length} <span className="text-xs text-zinc-500 font-medium">/ 30</span>
+                    {completedCount} <span className="text-xs text-zinc-500 font-medium">/ 30</span>
                   </div>
                   <div className="text-[10px] text-zinc-400 font-semibold uppercase mt-0.5">Days Completed</div>
                 </div>
@@ -170,23 +195,21 @@ export default function Challenges() {
             )}
           </div>
 
-          {/* Progress bar */}
-          {challengeDetails.user_progress.started && (
-            <div className="mt-5 space-y-1.5">
-              <div className="flex justify-between text-xs text-zinc-400 font-medium">
-                <span>Challenge Progress</span>
-                <span className="text-emerald-400 font-bold">
-                  {Math.round((challengeDetails.user_progress.completed_days.length / 30) * 100)}%
-                </span>
-              </div>
-              <div className="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden border border-zinc-700/40">
-                <div
-                  className="bg-gradient-to-r from-emerald-600 to-emerald-400 h-full transition-all duration-300 rounded-full"
-                  style={{ width: `${(challengeDetails.user_progress.completed_days.length / 30) * 100}%` }}
-                ></div>
-              </div>
+          {/* Achievement Milestone Badges Row */}
+          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-zinc-800/80 text-center">
+            <div className={`p-2.5 rounded-2xl border ${completedCount >= 7 ? "bg-amber-950/40 border-amber-500/50 text-amber-300" : "bg-zinc-950 border-zinc-800 text-zinc-600"}`}>
+              <Award size={16} className="mx-auto mb-1" />
+              <div className="text-[11px] font-bold">7-Day Iron</div>
             </div>
-          )}
+            <div className={`p-2.5 rounded-2xl border ${completedCount >= 15 ? "bg-emerald-950/40 border-emerald-500/50 text-emerald-300" : "bg-zinc-950 border-zinc-800 text-zinc-600"}`}>
+              <Sparkles size={16} className="mx-auto mb-1" />
+              <div className="text-[11px] font-bold">15-Day Halfway</div>
+            </div>
+            <div className={`p-2.5 rounded-2xl border ${completedCount >= 30 ? "bg-purple-950/40 border-purple-500/50 text-purple-300" : "bg-zinc-950 border-zinc-800 text-zinc-600"}`}>
+              <Crown size={16} className="mx-auto mb-1" />
+              <div className="text-[11px] font-bold">30-Day Champion</div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -258,8 +281,8 @@ export default function Challenges() {
         </div>
       )}
 
-      {/* Day Routine Preview Modal */}
-      {activeDayModal && (
+      {/* Day Preview Modal */}
+      {activeDayModal && !showRestPlayer && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 max-w-md w-full space-y-5 relative">
             <button
@@ -312,11 +335,10 @@ export default function Challenges() {
             <div className="flex gap-2 pt-3 border-t border-zinc-800">
               {activeDayModal.is_rest ? (
                 <button
-                  disabled={activeDayModal.is_completed}
-                  onClick={() => handleCompleteDay(activeDayModal.day)}
-                  className="btn-brand flex-1 py-3 text-xs font-bold"
+                  onClick={() => setShowRestPlayer(true)}
+                  className="btn-brand flex-1 py-3 text-xs font-bold flex items-center justify-center gap-1.5"
                 >
-                  {activeDayModal.is_completed ? "Already Rested" : "Mark Rest Completed"}
+                  <Timer size={15} /> Start Guided Stretching Timer
                 </button>
               ) : (
                 <>
@@ -333,6 +355,54 @@ export default function Challenges() {
                     <Play size={14} className="fill-current" /> Start Live Workout
                   </Link>
                 </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Guided Rest Stretching Player Modal */}
+      {showRestPlayer && activeDayModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-blue-500/50 rounded-3xl p-6 max-w-md w-full space-y-5 text-center relative">
+            <button
+              onClick={() => setShowRestPlayer(false)}
+              className="absolute top-5 right-5 p-1.5 rounded-full text-zinc-400 hover:text-white bg-zinc-800"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-300 text-xs font-bold border border-blue-500/30">
+              <Coffee size={14} /> REST DAY RECOVERY PLAYER
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-xl font-black text-white">{restStretches[restStepIndex].title}</h3>
+              <p className="text-xs text-zinc-400">{restStretches[restStepIndex].desc}</p>
+            </div>
+
+            <div className="text-5xl font-black text-blue-400 tracking-tight animate-pulse">
+              {restTimerSec} <span className="text-xl text-zinc-500">sec</span>
+            </div>
+
+            <div className="flex gap-2 pt-3 border-t border-zinc-800">
+              {restStepIndex < restStretches.length - 1 ? (
+                <button
+                  onClick={() => {
+                    setRestStepIndex(idx => idx + 1);
+                    setRestTimerSec(45);
+                  }}
+                  className="btn-brand flex-1 py-3 text-xs font-bold"
+                >
+                  Next Stretch Hold
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleCompleteDay(activeDayModal.day)}
+                  className="btn-brand flex-1 py-3 text-xs font-bold"
+                >
+                  Finish Rest & Recovery
+                </button>
               )}
             </div>
           </div>
