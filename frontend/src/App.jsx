@@ -10,6 +10,7 @@ import Library from "./pages/Library";
 import MapTracker from "./pages/MapTracker";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import Settings from "./pages/Settings";
+import MoreHub from "./pages/MoreHub";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -43,6 +44,11 @@ export default function App() {
           <Route path="/play/:workoutId" element={
             <ProtectedRoute>
               <WorkoutPlayer />
+            </ProtectedRoute>
+          } />
+          <Route path="/more" element={
+            <ProtectedRoute>
+              <MoreHub />
             </ProtectedRoute>
           } />
           <Route path="/library" element={

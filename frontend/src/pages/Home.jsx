@@ -12,7 +12,11 @@ import {
   Scale,
   Award,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  User,
+  Activity,
+  HeartPulse,
+  Heart
 } from "lucide-react";
 
 const API_BASE = "http://localhost:8000";
@@ -21,9 +25,17 @@ export default function Home() {
   const [dailyLog, setDailyLog] = useState(null);
   const [streakData, setStreakData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showWeightModal, setShowWeightModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showCustomWaterModal, setShowCustomWaterModal] = useState(false);
+  const [customWaterInput, setCustomWaterInput] = useState("");
+
+  // Form states for body profile
+  const [heightInput, setHeightInput] = useState("");
   const [weightInput, setWeightInput] = useState("");
+  const [targetWeightInput, setTargetWeightInput] = useState("");
+  const [ageInput, setAgeInput] = useState("");
   const [waistInput, setWaistInput] = useState("");
+  const [bicepInput, setBicepInput] = useState("");
 
   const fetchDashboardData = async () => {
     try {
@@ -36,6 +48,15 @@ export default function Home() {
       const sData = await streakRes.json();
       setDailyLog(logData);
       setStreakData(sData);
+
+      if (logData) {
+        if (logData.height_cm) setHeightInput(logData.height_cm);
+        if (logData.weight_kg) setWeightInput(logData.weight_kg);
+        if (logData.target_weight_kg) setTargetWeightInput(logData.target_weight_kg);
+        if (logData.age) setAgeInput(logData.age);
+        if (logData.waist_cm) setWaistInput(logData.waist_cm);
+        if (logData.bicep_cm) setBicepInput(logData.bicep_cm);
+      }
     } catch (err) {
       console.error("Error fetching daily dashboard data:", err);
     } finally {
@@ -47,12 +68,12 @@ export default function Home() {
     fetchDashboardData();
   }, []);
 
-  const addWater = async (amount) => {
+  const addWater = async (amount, setExact = false) => {
     try {
       const res = await fetch(`${API_BASE}/daily/water`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: 1, amount_ml: amount })
+        body: JSON.stringify({ user_id: "1", amount_ml: amount, set_exact: setExact })
       });
       const data = await res.json();
       setDailyLog(prev => prev ? { ...prev, water_ml: data.water_ml } : null);
@@ -61,22 +82,26 @@ export default function Home() {
     }
   };
 
-  const handleSaveMetrics = async (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
     try {
       await fetch(`${API_BASE}/daily/metrics`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: 1,
+          user_id: "1",
+          height_cm: heightInput ? parseFloat(heightInput) : undefined,
           weight_kg: weightInput ? parseFloat(weightInput) : undefined,
-          waist_cm: waistInput ? parseFloat(waistInput) : undefined
+          target_weight_kg: targetWeightInput ? parseFloat(targetWeightInput) : undefined,
+          age: ageInput ? parseInt(ageInput) : undefined,
+          waist_cm: waistInput ? parseFloat(waistInput) : undefined,
+          bicep_cm: bicepInput ? parseFloat(bicepInput) : undefined
         })
       });
-      setShowWeightModal(false);
+      setShowProfileModal(false);
       fetchDashboardData();
     } catch (err) {
-      console.error("Error saving metrics:", err);
+      console.error("Error saving physical profile:", err);
     }
   };
 
@@ -88,7 +113,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-24">
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-zinc-900 to-zinc-900 border border-emerald-800/40 p-6 shadow-xl">
         <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -97,13 +122,63 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-3">
               <Sparkles size={13} /> FitStream Today
             </div>
-            <h1 className="text-2xl font-extrabold text-white tracking-tight">Keep the Momentum!</h1>
-            <p className="text-sm text-zinc-400 mt-1">Track your daily exercises, hydration & progress</p>
+            <h1 className="text-2xl font-extrabold text-white tracking-tight">Keep Moving Forward!</h1>
+            <p className="text-sm text-zinc-400 mt-1">Track workouts, hydration & physical metrics</p>
           </div>
           <div className="flex flex-col items-center justify-center bg-zinc-900/90 border border-amber-500/30 p-3.5 rounded-2xl shadow-lg">
             <Flame size={28} className="text-amber-500 animate-pulse fill-amber-500" />
             <span className="text-xl font-bold text-white mt-1">{streakData?.current_streak || 0}</span>
             <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-wider">Day Streak</span>
+          </div>
+        </div>
+      </div>
+
+      {/* User Physical Profile Card (BMI / BMR / Height / Weight) */}
+      <div className="surface p-6 border border-zinc-800 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-white font-bold text-base">
+            <User size={20} className="text-emerald-400" /> Physical Profile & Body Stats
+          </div>
+          <button
+            onClick={() => setShowProfileModal(true)}
+            className="btn-ghost text-xs py-1.5 px-3 font-semibold text-emerald-400 border-emerald-500/30"
+          >
+            Edit Profile
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800/80">
+            <div className="text-xs text-zinc-500 font-medium">Height</div>
+            <div className="text-xl font-extrabold text-white mt-1">
+              {dailyLog?.height_cm || 175} <span className="text-xs font-normal text-zinc-400">cm</span>
+            </div>
+          </div>
+
+          <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800/80">
+            <div className="text-xs text-zinc-500 font-medium">Weight</div>
+            <div className="text-xl font-extrabold text-white mt-1">
+              {dailyLog?.weight_kg || 70} <span className="text-xs font-normal text-zinc-400">kg</span>
+            </div>
+            {dailyLog?.target_weight_kg && (
+              <div className="text-[10px] text-emerald-400 mt-0.5">Target: {dailyLog.target_weight_kg} kg</div>
+            )}
+          </div>
+
+          <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800/80">
+            <div className="text-xs text-zinc-500 font-medium">BMI</div>
+            <div className="text-xl font-extrabold text-emerald-400 mt-1">
+              {dailyLog?.bmi || 22.9}
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-0.5">{dailyLog?.bmi_category || "Normal"}</div>
+          </div>
+
+          <div className="bg-zinc-950 p-3.5 rounded-2xl border border-zinc-800/80">
+            <div className="text-xs text-zinc-500 font-medium">BMR Calories</div>
+            <div className="text-xl font-extrabold text-amber-400 mt-1">
+              {dailyLog?.bmr_calories || 1680} <span className="text-xs font-normal text-zinc-400">kcal</span>
+            </div>
+            <div className="text-[10px] text-zinc-400 mt-0.5">Basal rate</div>
           </div>
         </div>
       </div>
@@ -144,48 +219,58 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Water Intake Tracker Widget */}
-      <div className="surface p-5 border border-blue-900/30">
+      {/* Enhanced Water Tracker Widget */}
+      <div className="surface p-6 border border-blue-900/30">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              <Droplet size={20} className="fill-blue-400" />
+            <div className="p-2.5 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <Droplet size={22} className="fill-blue-400" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">Water Intake Tracker</h3>
-              <p className="text-xs text-zinc-400">Target: {dailyLog?.target_water_ml || 2500} ml / day</p>
+              <h3 className="text-base font-bold text-white">Hydration Tracker</h3>
+              <p className="text-xs text-zinc-400">Target: {dailyLog?.target_water_ml || 2450} ml / day (weight based)</p>
             </div>
           </div>
-          <span className="text-lg font-extrabold text-blue-400">{dailyLog?.water_ml || 0} ml</span>
+          <span className="text-xl font-extrabold text-blue-400">{dailyLog?.water_ml || 0} ml</span>
         </div>
 
-        {/* Progress Bar */}
-        <div className="w-full bg-zinc-800 rounded-full h-3 overflow-hidden mb-4 border border-zinc-700/50">
+        <div className="w-full bg-zinc-800 rounded-full h-3.5 overflow-hidden mb-4 border border-zinc-700/50">
           <div
             className="bg-gradient-to-r from-blue-600 to-cyan-400 h-full transition-all duration-300 rounded-full"
-            style={{ width: `${Math.min(100, ((dailyLog?.water_ml || 0) / (dailyLog?.target_water_ml || 2500)) * 100)}%` }}
+            style={{ width: `${Math.min(100, ((dailyLog?.water_ml || 0) / (dailyLog?.target_water_ml || 2450)) * 100)}%` }}
           ></div>
         </div>
 
-        {/* Quick Add Buttons */}
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          <button
+            onClick={() => addWater(100)}
+            className="py-2.5 px-3 bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 text-xs font-semibold rounded-xl border border-blue-800/40 flex items-center justify-center gap-1 transition-all"
+          >
+            <Plus size={14} /> +100 ml
+          </button>
           <button
             onClick={() => addWater(250)}
-            className="flex-1 py-2 px-3 bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 text-xs font-semibold rounded-xl border border-blue-800/40 flex items-center justify-center gap-1 transition-all"
+            className="py-2.5 px-3 bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 text-xs font-semibold rounded-xl border border-blue-800/40 flex items-center justify-center gap-1 transition-all"
           >
             <Plus size={14} /> +250 ml
           </button>
           <button
             onClick={() => addWater(500)}
-            className="flex-1 py-2 px-3 bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 text-xs font-semibold rounded-xl border border-blue-800/40 flex items-center justify-center gap-1 transition-all"
+            className="py-2.5 px-3 bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 text-xs font-semibold rounded-xl border border-blue-800/40 flex items-center justify-center gap-1 transition-all"
           >
             <Plus size={14} /> +500 ml
+          </button>
+          <button
+            onClick={() => setShowCustomWaterModal(true)}
+            className="py-2.5 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold rounded-xl border border-zinc-700/50 flex items-center justify-center gap-1 transition-all col-span-3 sm:col-span-1"
+          >
+            Custom Amount
           </button>
         </div>
       </div>
 
       {/* 30-Day Challenge Shortcut Banner */}
-      <div className="surface p-5 relative overflow-hidden bg-gradient-to-r from-zinc-900 via-zinc-900 to-emerald-950/50">
+      <div className="surface p-5 relative overflow-hidden bg-gradient-to-r from-zinc-900 via-zinc-900 to-emerald-950/50 border border-zinc-800">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold uppercase tracking-wider">
@@ -212,7 +297,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {quickWorkouts.map((w) => (
-            <div key={w.id} className="surface p-4 flex items-center justify-between surface-hover">
+            <div key={w.id} className="surface p-4 flex items-center justify-between surface-hover border border-zinc-800">
               <div className="space-y-1">
                 <h4 className="text-sm font-semibold text-white">{w.title}</h4>
                 <div className="flex items-center gap-2 text-xs text-zinc-400">
@@ -234,118 +319,141 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Body Weight Tracker & Activity Heatmap */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Weight Card */}
-        <div className="surface p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-zinc-200 font-semibold text-sm">
-              <Scale size={18} className="text-emerald-400" /> Body Metrics
-            </div>
-            <button
-              onClick={() => setShowWeightModal(true)}
-              className="text-xs text-emerald-400 hover:underline font-medium"
-            >
-              Update
-            </button>
-          </div>
-
-          <div className="my-4">
-            <div className="text-3xl font-black text-white">
-              {dailyLog?.weight_kg ? `${dailyLog.weight_kg} kg` : "Not logged today"}
-            </div>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Waist: {dailyLog?.waist_cm ? `${dailyLog.waist_cm} cm` : "—"}
-            </p>
-          </div>
-
-          <div className="text-[11px] text-zinc-500">
-            Regularly log metrics to generate progress trends.
-          </div>
-        </div>
-
-        {/* Activity Calendar Heatmap */}
-        <div className="surface p-5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 text-zinc-200 font-semibold text-sm">
-              <TrendingUp size={18} className="text-amber-400" /> Activity Heatmap
-            </div>
-            <span className="text-xs text-zinc-400">Past 30 Days</span>
-          </div>
-
-          {/* Heatmap Grid */}
-          <div className="grid grid-cols-10 gap-1.5 my-3">
-            {Array.from({ length: 30 }).map((_, i) => {
-              const active = i % 2 === 0 || i % 5 === 0; // demonstration active indicators
-              return (
-                <div
-                  key={i}
-                  className={`h-5 rounded-md transition-all ${
-                    active
-                      ? "bg-emerald-500 shadow-sm shadow-emerald-500/30"
-                      : "bg-zinc-800/80 border border-zinc-700/30"
-                  }`}
-                  title={`Day ${30 - i}`}
-                ></div>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center justify-between text-[11px] text-zinc-400">
-            <span>Less active</span>
-            <div className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded bg-zinc-800"></span>
-              <span className="w-2.5 h-2.5 rounded bg-emerald-500"></span>
-            </div>
-            <span>Completed workout</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Log Weight Modal */}
-      {showWeightModal && (
+      {/* Profile Form Modal */}
+      {showProfileModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 max-w-sm w-full space-y-4">
-            <h3 className="text-lg font-bold text-white">Log Today's Body Metrics</h3>
-            <form onSubmit={handleSaveMetrics} className="space-y-3">
-              <div>
-                <label className="text-xs text-zinc-400 block mb-1">Body Weight (kg)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g. 75.5"
-                  value={weightInput}
-                  onChange={(e) => setWeightInput(e.target.value)}
-                  className="input-modern w-full"
-                />
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 max-w-md w-full space-y-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold text-white">Update Physical Profile</h3>
+            <form onSubmit={handleSaveProfile} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-zinc-400 block mb-1">Height (cm)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    placeholder="175"
+                    value={heightInput}
+                    onChange={(e) => setHeightInput(e.target.value)}
+                    className="input-modern w-full"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-400 block mb-1">Age</label>
+                  <input
+                    type="number"
+                    placeholder="25"
+                    value={ageInput}
+                    onChange={(e) => setAgeInput(e.target.value)}
+                    className="input-modern w-full"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-xs text-zinc-400 block mb-1">Waist Circumference (cm)</label>
-                <input
-                  type="number"
-                  step="0.5"
-                  placeholder="e.g. 82.0"
-                  value={waistInput}
-                  onChange={(e) => setWaistInput(e.target.value)}
-                  className="input-modern w-full"
-                />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-zinc-400 block mb-1">Current Weight (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="70.0"
+                    value={weightInput}
+                    onChange={(e) => setWeightInput(e.target.value)}
+                    className="input-modern w-full"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-400 block mb-1">Target Weight (kg)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder="68.0"
+                    value={targetWeightInput}
+                    onChange={(e) => setTargetWeightInput(e.target.value)}
+                    className="input-modern w-full"
+                  />
+                </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-zinc-400 block mb-1">Waist (cm)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    placeholder="80.0"
+                    value={waistInput}
+                    onChange={(e) => setWaistInput(e.target.value)}
+                    className="input-modern w-full"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-400 block mb-1">Bicep (cm)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    placeholder="35.0"
+                    value={bicepInput}
+                    onChange={(e) => setBicepInput(e.target.value)}
+                    className="input-modern w-full"
+                  />
+                </div>
+              </div>
+
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowWeightModal(false)}
+                  onClick={() => setShowProfileModal(false)}
                   className="btn-ghost flex-1 py-2.5"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn-brand flex-1 py-2.5"
+                  className="btn-brand flex-1 py-2.5 font-bold"
                 >
-                  Save Metrics
+                  Save Profile
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Water Input Modal */}
+      {showCustomWaterModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 max-w-sm w-full space-y-4">
+            <h3 className="text-lg font-bold text-white">Log Water Intake (ml)</h3>
+            <div>
+              <input
+                type="number"
+                placeholder="e.g. 350"
+                value={customWaterInput}
+                onChange={(e) => setCustomWaterInput(e.target.value)}
+                className="input-modern w-full"
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCustomWaterModal(false)}
+                className="btn-ghost flex-1 py-2.5"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (customWaterInput) {
+                    addWater(parseInt(customWaterInput));
+                    setShowCustomWaterModal(false);
+                    setCustomWaterInput("");
+                  }
+                }}
+                className="btn-brand flex-1 py-2.5 font-bold"
+              >
+                Add Water
+              </button>
+            </div>
           </div>
         </div>
       )}

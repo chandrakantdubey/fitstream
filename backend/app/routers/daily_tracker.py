@@ -17,10 +17,16 @@ class WaterUpdateReq(BaseModel):
 
 class BodyMetricsLogReq(BaseModel):
     user_id: str = "1"
+    height_cm: Optional[float] = None
     weight_kg: Optional[float] = None
+    target_weight_kg: Optional[float] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
     waist_cm: Optional[float] = None
     chest_cm: Optional[float] = None
     bicep_cm: Optional[float] = None
+    thigh_cm: Optional[float] = None
+    activity_level: Optional[str] = None
     notes: Optional[str] = None
 
 @router.get("/log")
@@ -28,7 +34,28 @@ def get_daily_log(user_id: str = "1", log_date: Optional[str] = None, db: Sessio
     target_date = date.fromisoformat(log_date) if log_date else date.today()
     log = db.query(DailyLog).filter(DailyLog.user_id == str(user_id), DailyLog.log_date == target_date).first()
     if not log:
-        log = DailyLog(user_id=str(user_id), log_date=target_date, water_ml=0, target_water_ml=2500, active_minutes=0, calories_burned=0)
+        # Check previous log for height/weight fallback
+        prev_log = db.query(DailyLog).filter(DailyLog.user_id == str(user_id)).order_by(DailyLog.log_date.desc()).first()
+        h = prev_log.height_cm if prev_log and prev_log.height_cm else 175.0
+        w = prev_log.weight_kg if prev_log and prev_log.weight_kg else 70.0
+        tw = prev_log.target_weight_kg if prev_log and prev_log.target_weight_kg else 68.0
+        a = prev_log.age if prev_log and prev_log.age else 25
+        g = prev_log.gender if prev_log and prev_log.gender else "Male"
+
+        target_w_ml = round(w * 35) # 35ml per kg recommendation
+        log = DailyLog(
+            user_id=str(user_id),
+            log_date=target_date,
+            water_ml=0,
+            target_water_ml=target_w_ml,
+            active_minutes=0,
+            calories_burned=0,
+            height_cm=h,
+            weight_kg=w,
+            target_weight_kg=tw,
+            age=a,
+            gender=g
+        )
         db.add(log)
         db.commit()
         db.refresh(log)
@@ -45,6 +72,25 @@ def get_daily_log(user_id: str = "1", log_date: Optional[str] = None, db: Sessio
     log.calories_burned = log.active_minutes * 8
     db.commit()
 
+    # BMI Calculation
+    bmi = 0.0
+    bmi_category = "Normal"
+    if log.height_cm and log.weight_kg and log.height_cm > 0:
+        height_m = log.height_cm / 100.0
+        bmi = round(log.weight_kg / (height_m * height_m), 1)
+        if bmi < 18.5: bmi_category = "Underweight"
+        elif bmi < 25.0: bmi_category = "Normal Weight"
+        elif bmi < 30.0: bmi_category = "Overweight"
+        else: bmi_category = "Obese"
+
+    # BMR Calculation (Mifflin-St Jeor)
+    bmr = 0
+    if log.weight_kg and log.height_cm and log.age:
+        if log.gender == "Female":
+            bmr = round(10 * log.weight_kg + 6.25 * log.height_cm - 5 * log.age - 161)
+        else:
+            bmr = round(10 * log.weight_kg + 6.25 * log.height_cm - 5 * log.age + 5)
+
     return {
         "id": log.id,
         "date": str(log.log_date),
@@ -52,10 +98,19 @@ def get_daily_log(user_id: str = "1", log_date: Optional[str] = None, db: Sessio
         "target_water_ml": log.target_water_ml,
         "active_minutes": log.active_minutes,
         "calories_burned": log.calories_burned,
+        "height_cm": log.height_cm,
         "weight_kg": log.weight_kg,
+        "target_weight_kg": log.target_weight_kg,
+        "age": log.age,
+        "gender": log.gender,
         "waist_cm": log.waist_cm,
         "chest_cm": log.chest_cm,
         "bicep_cm": log.bicep_cm,
+        "thigh_cm": log.thigh_cm,
+        "activity_level": log.activity_level,
+        "bmi": bmi,
+        "bmi_category": bmi_category,
+        "bmr_calories": bmr,
         "notes": log.notes,
         "workouts_completed_today": len(sessions)
     }
@@ -85,14 +140,22 @@ def log_body_metrics(req: BodyMetricsLogReq, db: Session = Depends(get_db)):
         log = DailyLog(user_id=str(req.user_id), log_date=today)
         db.add(log)
     
-    if req.weight_kg is not None: log.weight_kg = req.weight_kg
+    if req.height_cm is not None: log.height_cm = req.height_cm
+    if req.weight_kg is not None: 
+        log.weight_kg = req.weight_kg
+        log.target_water_ml = round(req.weight_kg * 35)
+    if req.target_weight_kg is not None: log.target_weight_kg = req.target_weight_kg
+    if req.age is not None: log.age = req.age
+    if req.gender is not None: log.gender = req.gender
     if req.waist_cm is not None: log.waist_cm = req.waist_cm
     if req.chest_cm is not None: log.chest_cm = req.chest_cm
     if req.bicep_cm is not None: log.bicep_cm = req.bicep_cm
+    if req.thigh_cm is not None: log.thigh_cm = req.thigh_cm
+    if req.activity_level is not None: log.activity_level = req.activity_level
     if req.notes is not None: log.notes = req.notes
     
     db.commit()
-    return {"message": "Metrics saved successfully", "date": str(today)}
+    return {"message": "Physical profile metrics saved successfully", "date": str(today)}
 
 @router.get("/streak")
 def get_user_streak(user_id: str = "1", db: Session = Depends(get_db)):
