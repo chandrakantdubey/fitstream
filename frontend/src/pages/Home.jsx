@@ -143,9 +143,17 @@ export default function Home() {
 
       {/* 3 Dynamic Activity Progress Rings */}
       <div className="surface p-6 border border-zinc-800 space-y-4">
-        <h3 className="text-base font-bold text-white flex items-center gap-2">
-          <Activity size={18} className="text-emerald-400" /> Daily Goal Progress Rings
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-bold text-white flex items-center gap-2">
+            <Activity size={18} className="text-emerald-400" /> Daily Goal Progress Rings
+          </h3>
+          <Link
+            to="/analytics"
+            className="text-xs text-emerald-400 hover:underline font-bold flex items-center gap-1"
+          >
+            Analytics <ChevronRight size={14} />
+          </Link>
+        </div>
 
         <div className="grid grid-cols-3 gap-3 text-center">
           {/* Active Minutes Ring */}

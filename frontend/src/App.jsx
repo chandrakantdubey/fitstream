@@ -11,6 +11,7 @@ import MapTracker from "./pages/MapTracker";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import Settings from "./pages/Settings";
 import MoreHub from "./pages/MoreHub";
+import ProgressAnalytics from "./pages/ProgressAnalytics";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -49,6 +50,11 @@ export default function App() {
           <Route path="/more" element={
             <ProtectedRoute>
               <MoreHub />
+            </ProtectedRoute>
+          } />
+          <Route path="/analytics" element={
+            <ProtectedRoute>
+              <ProgressAnalytics />
             </ProtectedRoute>
           } />
           <Route path="/library" element={

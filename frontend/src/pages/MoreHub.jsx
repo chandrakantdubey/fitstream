@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
-import { BookOpen, MapPin, Sparkles, Settings, ChevronRight } from "lucide-react";
+import { BookOpen, MapPin, Sparkles, Settings, ChevronRight, TrendingUp } from "lucide-react";
 
 const API_BASE = "http://localhost:8000";
 
@@ -27,11 +27,19 @@ export default function MoreHub() {
 
   const menuItems = [
     {
+      title: "Progress Analytics",
+      desc: "Weight tracking, body measurements & performance trends",
+      path: "/analytics",
+      icon: TrendingUp,
+      color: "text-emerald-400",
+      badge: "BODY CHARTS"
+    },
+    {
       title: "Exercise Library",
       desc: "Browse 1,300+ exercises with equipment & muscle filters",
       path: "/library",
       icon: BookOpen,
-      color: "text-emerald-400",
+      color: "text-blue-400",
       badge: "1,300+ EXERCISES"
     },
     {
@@ -39,12 +47,12 @@ export default function MoreHub() {
       desc: "Interactive Leaflet maps for running, cycling & walking",
       path: "/maps",
       icon: MapPin,
-      color: "text-blue-400",
+      color: "text-cyan-400",
       badge: "GPS TRACKER"
     },
     {
       title: "Fitness Knowledge Base",
-      desc: "Volume science, progressive overload & 1RM calculator",
+      desc: "1RM Calculator, TDEE Macros & progressive overload science",
       path: "/knowledge",
       icon: Sparkles,
       color: "text-amber-400",
