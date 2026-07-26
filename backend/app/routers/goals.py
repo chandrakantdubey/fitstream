@@ -82,6 +82,42 @@ def get_active_goals(db: Session = Depends(get_db), current_user: User = Depends
     return [_format_goal(g) for g in goals]
 
 
+# Personal Records
+@router.post("/records")
+def create_record(data: PersonalRecordIn, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    record = PersonalRecord(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        exercise_id=data.exercise_id,
+        record_type=data.record_type,
+        value=data.value,
+        unit=data.unit,
+        reps=data.reps,
+        notes=data.notes
+    )
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return _format_record(record)
+
+
+@router.get("/records")
+def list_records(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    records = db.query(PersonalRecord).filter(
+        PersonalRecord.user_id == current_user.id
+    ).order_by(PersonalRecord.achieved_at.desc()).all()
+    return [_format_record(r) for r in records]
+
+
+@router.get("/records/exercise/{exercise_id}")
+def get_exercise_records(exercise_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    records = db.query(PersonalRecord).filter(
+        PersonalRecord.user_id == current_user.id,
+        PersonalRecord.exercise_id == exercise_id
+    ).order_by(PersonalRecord.achieved_at.desc()).all()
+    return [_format_record(r) for r in records]
+
+
 @router.get("/{goal_id}")
 def get_goal(goal_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     goal = db.query(Goal).filter(
@@ -214,42 +250,6 @@ def complete_milestone(
     db.commit()
     db.refresh(milestone)
     return _format_milestone(milestone)
-
-
-# Personal Records
-@router.post("/records")
-def create_record(data: PersonalRecordIn, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    record = PersonalRecord(
-        id=str(uuid.uuid4()),
-        user_id=current_user.id,
-        exercise_id=data.exercise_id,
-        record_type=data.record_type,
-        value=data.value,
-        unit=data.unit,
-        reps=data.reps,
-        notes=data.notes
-    )
-    db.add(record)
-    db.commit()
-    db.refresh(record)
-    return _format_record(record)
-
-
-@router.get("/records")
-def list_records(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    records = db.query(PersonalRecord).filter(
-        PersonalRecord.user_id == current_user.id
-    ).order_by(PersonalRecord.achieved_at.desc()).all()
-    return [_format_record(r) for r in records]
-
-
-@router.get("/records/exercise/{exercise_id}")
-def get_exercise_records(exercise_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    records = db.query(PersonalRecord).filter(
-        PersonalRecord.user_id == current_user.id,
-        PersonalRecord.exercise_id == exercise_id
-    ).order_by(PersonalRecord.achieved_at.desc()).all()
-    return [_format_record(r) for r in records]
 
 
 def _format_goal(g):
