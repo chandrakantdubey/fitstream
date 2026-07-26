@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
 import { Plus, Calendar as CalendarIcon, Clock, Check, X } from "lucide-react";
+import {
+  completeScheduledWorkout,
+  fetchCalendar as loadCalendar,
+  fetchUpcomingWorkouts,
+  skipScheduledWorkout,
+} from "../utils/api";
 
 export default function Schedule() {
   const [calendar, setCalendar] = useState({});
@@ -15,13 +21,9 @@ export default function Schedule() {
 
   const fetchCalendar = async () => {
     try {
-      const token = localStorage.getItem('token');
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth() + 1;
-      const res = await fetch(`http://localhost:8000/schedule/calendar?year=${year}&month=${month}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await loadCalendar(year, month);
       setCalendar(data);
     } catch (err) {
       console.error('Failed to fetch calendar:', err);
@@ -30,11 +32,7 @@ export default function Schedule() {
 
   const fetchUpcoming = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8000/schedule/workouts/upcoming', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await fetchUpcomingWorkouts();
       setUpcoming(data);
     } catch (err) {
       console.error('Failed to fetch upcoming:', err);
@@ -43,11 +41,7 @@ export default function Schedule() {
 
   const handleComplete = async (scheduledId) => {
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`http://localhost:8000/schedule/workouts/${scheduledId}/complete`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await completeScheduledWorkout(scheduledId);
       fetchCalendar();
       fetchUpcoming();
     } catch (err) {
@@ -57,15 +51,7 @@ export default function Schedule() {
 
   const handleSkip = async (scheduledId) => {
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`http://localhost:8000/schedule/workouts/${scheduledId}/skip`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ reason: 'Skipped' })
-      });
+      await skipScheduledWorkout(scheduledId);
       fetchCalendar();
       fetchUpcoming();
     } catch (err) {
@@ -251,8 +237,8 @@ export default function Schedule() {
 
       {/* Add Schedule Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="surface p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[80]">
+          <div className="surface p-6 w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <h2 className="text-lg font-bold mb-4">Schedule Workout</h2>
             <p className="text-sm text-zinc-400 mb-4">
               Select a workout and date to schedule it.

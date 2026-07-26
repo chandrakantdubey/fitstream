@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
 import { Plus, Target, Trophy, TrendingUp, Calendar } from "lucide-react";
+import {
+  createGoal,
+  fetchActiveGoals,
+  fetchRecords as loadRecords,
+  updateGoalProgress,
+} from "../utils/api";
 
 export default function Goals() {
   const [goals, setGoals] = useState([]);
@@ -21,11 +27,7 @@ export default function Goals() {
 
   const fetchGoals = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8000/goals/active', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await fetchActiveGoals();
       setGoals(data);
     } catch (err) {
       console.error('Failed to fetch goals:', err);
@@ -34,11 +36,7 @@ export default function Goals() {
 
   const fetchRecords = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8000/goals/records', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await loadRecords();
       setRecords(data);
     } catch (err) {
       console.error('Failed to fetch records:', err);
@@ -48,18 +46,10 @@ export default function Goals() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      await fetch('http://localhost:8000/goals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          target_value: formData.target_value ? parseFloat(formData.target_value) : null,
-          current_value: formData.current_value ? parseFloat(formData.current_value) : null
-        })
+      await createGoal({
+        ...formData,
+        target_value: formData.target_value ? parseFloat(formData.target_value) : null,
+        current_value: formData.current_value ? parseFloat(formData.current_value) : null,
       });
       setShowAddModal(false);
       setFormData({
@@ -78,11 +68,7 @@ export default function Goals() {
 
   const updateProgress = async (goalId, newValue) => {
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`http://localhost:8000/goals/${goalId}/progress?current_value=${newValue}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await updateGoalProgress(goalId, newValue);
       fetchGoals();
     } catch (err) {
       console.error('Failed to update progress:', err);
@@ -195,8 +181,8 @@ export default function Goals() {
 
       {/* Add Goal Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="surface p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[80]">
+          <div className="surface p-6 w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <h2 className="text-lg font-bold mb-4">Add Goal</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

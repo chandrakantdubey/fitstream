@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
+import { loginUser } from "../utils/api";
 import { Dumbbell } from "lucide-react";
 
 export default function Login() {
@@ -17,17 +18,7 @@ export default function Login() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:8000/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.detail || "Login failed");
-      }
-
+      const data = await loginUser({ email, password });
       login(data.access_token, data.user);
       nav("/");
     } catch (err) {

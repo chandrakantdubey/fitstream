@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Play, Clock, TrendingUp, BookOpen } from "lucide-react";
+import {
+  enrollProgram,
+  fetchActiveProgram as loadActiveProgram,
+  fetchPrograms as loadPrograms,
+  updateProgramProgress,
+} from "../utils/api";
 
 export default function Programs() {
   const [programs, setPrograms] = useState([]);
@@ -15,11 +21,7 @@ export default function Programs() {
 
   const fetchPrograms = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8000/programs', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await loadPrograms();
       setPrograms(data);
     } catch (err) {
       console.error('Failed to fetch programs:', err);
@@ -28,11 +30,7 @@ export default function Programs() {
 
   const fetchActiveProgram = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8000/programs/enrolled/active', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await loadActiveProgram();
       setActiveProgram(data);
     } catch (err) {
       console.error('Failed to fetch active program:', err);
@@ -41,15 +39,7 @@ export default function Programs() {
 
   const handleEnroll = async (programId) => {
     try {
-      const token = localStorage.getItem('token');
-      await fetch('http://localhost:8000/programs/enroll', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ program_id: programId })
-      });
+      await enrollProgram(programId);
       fetchActiveProgram();
     } catch (err) {
       console.error('Failed to enroll:', err);
@@ -59,11 +49,7 @@ export default function Programs() {
   const handleUpdateProgress = async (week, day) => {
     if (!activeProgram) return;
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`http://localhost:8000/programs/enrolled/${activeProgram.id}/progress?week=${week}&day=${day}`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await updateProgramProgress(activeProgram.id, week, day);
       fetchActiveProgram();
     } catch (err) {
       console.error('Failed to update progress:', err);
@@ -162,7 +148,7 @@ export default function Programs() {
                 <span className="text-xs text-zinc-500">{program.weeks?.length || 0} weeks</span>
               </div>
 
-              {!activeProgram?.program_id === program.id && (
+              {activeProgram?.program_id !== program.id && (
                 <button
                   onClick={() => handleEnroll(program.id)}
                   className="btn-brand w-full mt-3 py-2"
@@ -177,8 +163,8 @@ export default function Programs() {
 
       {/* Create Program Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="surface p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[80]">
+          <div className="surface p-6 w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <h2 className="text-lg font-bold mb-4">Create Program</h2>
             <p className="text-sm text-zinc-400 mb-4">
               Program creation requires detailed workout planning. This is a simplified view.

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { checkHealth } from "../utils/api";
+import { checkHealth, exportData } from "../utils/api";
 import useAuthStore from "../stores/authStore";
 import {
   Activity,
@@ -59,11 +59,7 @@ export default function Settings() {
   const handleExport = async () => {
     setExportLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8000/export/full', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await exportData();
       
       // Create and download the file
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

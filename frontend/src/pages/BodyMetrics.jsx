@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Plus, TrendingUp, Calendar, Scale } from "lucide-react";
+import {
+  createBodyMetric,
+  fetchBodyMetrics,
+  fetchWeightSummary as loadWeightSummary,
+} from "../utils/api";
 
 export default function BodyMetrics() {
   const [metrics, setMetrics] = useState([]);
@@ -22,11 +27,7 @@ export default function BodyMetrics() {
 
   const fetchMetrics = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8000/body-metrics', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await fetchBodyMetrics();
       setMetrics(data);
     } catch (err) {
       console.error('Failed to fetch metrics:', err);
@@ -35,11 +36,7 @@ export default function BodyMetrics() {
 
   const fetchWeightSummary = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:8000/body-metrics/summary/weight', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
+      const data = await loadWeightSummary();
       setWeightSummary(data);
     } catch (err) {
       console.error('Failed to fetch weight summary:', err);
@@ -49,21 +46,13 @@ export default function BodyMetrics() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token');
-      await fetch('http://localhost:8000/body-metrics', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
-          chest_cm: formData.chest_cm ? parseFloat(formData.chest_cm) : null,
-          waist_cm: formData.waist_cm ? parseFloat(formData.waist_cm) : null,
-          hips_cm: formData.hips_cm ? parseFloat(formData.hips_cm) : null,
-          date: new Date(formData.date).toISOString()
-        })
+      await createBodyMetric({
+        ...formData,
+        weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
+        chest_cm: formData.chest_cm ? parseFloat(formData.chest_cm) : null,
+        waist_cm: formData.waist_cm ? parseFloat(formData.waist_cm) : null,
+        hips_cm: formData.hips_cm ? parseFloat(formData.hips_cm) : null,
+        date: new Date(formData.date).toISOString(),
       });
       setShowAddModal(false);
       setFormData({
@@ -195,8 +184,8 @@ export default function BodyMetrics() {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="surface p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[80]">
+          <div className="surface p-6 w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <h2 className="text-lg font-bold mb-4">Add Body Metric</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
+import { registerUser } from "../utils/api";
 import { Dumbbell } from "lucide-react";
 
 export default function Register() {
@@ -19,22 +20,12 @@ export default function Register() {
     setError("");
 
     try {
-      const res = await fetch("http://localhost:8000/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          email, 
-          username, 
-          password, 
-          full_name: fullName 
-        }),
+      const data = await registerUser({
+        email,
+        username,
+        password,
+        full_name: fullName,
       });
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.detail || "Registration failed");
-      }
-
       login(data.access_token, data.user);
       nav("/");
     } catch (err) {
