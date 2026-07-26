@@ -9,7 +9,6 @@ from app.core.seed import seed_exercises
 from app.routers import (
     exercises_router,
     workouts_router,
-    feeds_router,
     health_router,
     progress_router,
     auth_router,
@@ -18,6 +17,10 @@ from app.routers import (
     goals_router,
     schedule_router,
     export_router,
+    daily_tracker_router,
+    challenges_router,
+    maps_router,
+    knowledge_base_router,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -35,13 +38,10 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown (optional)
-    # Add cleanup code here if needed.
-
 
 app = FastAPI(
     title="FitStream API",
-    version="2.0.0",
+    version="2.1.0",
     lifespan=lifespan,
 )
 
@@ -55,7 +55,6 @@ app.add_middleware(
 
 app.include_router(exercises_router)
 app.include_router(workouts_router)
-app.include_router(feeds_router)
 app.include_router(health_router)
 app.include_router(progress_router)
 app.include_router(auth_router)
@@ -64,13 +63,17 @@ app.include_router(programs_router)
 app.include_router(goals_router)
 app.include_router(schedule_router)
 app.include_router(export_router)
+app.include_router(daily_tracker_router)
+app.include_router(challenges_router)
+app.include_router(maps_router)
+app.include_router(knowledge_base_router)
 
 
 @app.get("/")
 def root():
     return {
         "app": "FitStream API",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "db": "sqlite",
-        # "channels": list(channel_router.channels.keys()),
+        "status": "healthy"
     }

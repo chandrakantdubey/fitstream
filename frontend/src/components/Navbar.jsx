@@ -1,52 +1,49 @@
 import { Link, useLocation } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 import {
-  Home,
-  BookOpen,
+  Flame,
+  CalendarCheck,
   Dumbbell,
-  Newspaper,
-  TrendingUp,
-  Settings,
+  BookOpen,
+  MapPin,
+  Sparkles
 } from "lucide-react";
 
 const items = [
-  { path: "/", icon: Home, label: "Home" },
-  { path: "/library", icon: BookOpen, label: "Library" },
+  { path: "/", icon: Flame, label: "Today" },
+  { path: "/challenges", icon: CalendarCheck, label: "30-Day" },
   { path: "/workouts", icon: Dumbbell, label: "Workouts" },
-  { path: "/programs", icon: Newspaper, label: "Programs" },
-  { path: "/schedule", icon: TrendingUp, label: "Schedule" },
-  { path: "/settings", icon: Settings, label: "Settings" },
+  { path: "/library", icon: BookOpen, label: "Exercises" },
+  { path: "/maps", icon: MapPin, label: "Maps" },
+  { path: "/knowledge", icon: Sparkles, label: "Knowledge" },
 ];
 
 export default function Navbar() {
   const { pathname } = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const logout = useAuthStore((state) => state.logout);
-
-  const handleLogout = () => {
-    logout();
-    window.location.href = "/login";
-  };
 
   if (!isAuthenticated) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-zinc-900/90 backdrop-blur-xl border-t border-zinc-800/60 z-50">
-      <div className="max-w-2xl mx-auto flex justify-around py-2">
-        {items.map(({ path, icon: Icon, label }) => (
-          <Link
-            key={path}
-            to={path}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
-              pathname === path
-                ? "text-brand-400"
-                : "text-zinc-500 hover:text-zinc-300"
-            }`}
-          >
-            <Icon size={20} strokeWidth={pathname === path ? 2.5 : 2} />
-            <span className="text-[10px] font-medium">{label}</span>
-          </Link>
-        ))}
+    <nav className="fixed bottom-0 left-0 right-0 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800/80 z-50 py-1">
+      <div className="max-w-2xl mx-auto flex justify-between px-2">
+        {items.map(({ path, icon: Icon, label }) => {
+          const isActive = pathname === path || (path !== "/" && pathname.startsWith(path));
+          return (
+            <Link
+              key={path}
+              to={path}
+              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
+                isActive
+                  ? "text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 shadow-sm"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Icon size={19} strokeWidth={isActive ? 2.5 : 1.8} />
+              <span className="text-[10px] font-medium">{label}</span>
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );

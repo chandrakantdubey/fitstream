@@ -1,360 +1,215 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useWorkoutStore } from "../stores/workoutStore";
-import { useExerciseStore } from "../stores/exerciseStore";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   Dumbbell,
-  Play,
-  Trash2,
   Plus,
-  ChevronDown,
-  ChevronUp,
-  GripVertical,
-  Search,
-  Check,
+  Play,
+  Sparkles,
+  Calendar,
+  Layers,
+  ChevronRight,
+  Zap,
+  Trash2
 } from "lucide-react";
+import PlanGeneratorModal from "../components/PlanGeneratorModal";
+
+const API_BASE = "http://localhost:8000";
 
 export default function Workouts() {
-  const {
-    workouts,
-    current,
-    load,
-    addExercise,
-    removeExercise,
-    updateParam,
-    setName,
-    save,
-    deleteById,
-    clearCurrent,
-  } = useWorkoutStore();
-  const { exercises, selected, clear, load: loadExercises } = useExerciseStore();
-  const [expanded, setExpanded] = useState(null);
-  const [showBuilder, setShowBuilder] = useState(false);
-  const [exerciseQuery, setExerciseQuery] = useState("");
-  const [saving, setSaving] = useState(false);
-  const nav = useNavigate();
+  const [workouts, setWorkouts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [generatedPlan, setGeneratedPlan] = useState(null);
 
-  useEffect(() => {
-    load();
-    loadExercises();
-  }, []);
-
-  useEffect(() => {
-    if (selected) {
-      addExercise(selected);
-      setShowBuilder(true);
-      clear();
-    }
-  }, [selected]);
-
-  const selectedIds = new Set(current.exercises.map((e) => e.id));
-  const exerciseMatches = exercises
-    .filter((ex) => {
-      if (selectedIds.has(ex.id)) return false;
-      const q = exerciseQuery.trim().toLowerCase();
-      if (!q) return true;
-      return [ex.name, ex.target, ex.category, ex.equipment]
-        .filter(Boolean)
-        .some((value) => value.toLowerCase().includes(q));
-    })
-    .slice(0, 8);
-
-  const handleSave = async () => {
-    setSaving(true);
-    const saved = await save();
-    setSaving(false);
-    if (saved) {
-      setShowBuilder(false);
-      setExerciseQuery("");
+  const fetchWorkouts = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/workouts?user_id=1`);
+      const data = await res.json();
+      setWorkouts(data);
+    } catch (err) {
+      console.error("Error fetching workouts:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchWorkouts();
+  }, []);
+
+  const handlePlanGenerated = (preferences) => {
+    // Generate split plan based on preferences
+    let planTitle = `${preferences.days} ${preferences.goal} Split`;
+    let routines = [];
+
+    if (preferences.days === "3 Days") {
+      routines = [
+        { name: "Full Body A (Squat & Press)", duration: "45 min", exercises: 5 },
+        { name: "Full Body B (Hinge & Pull)", duration: "45 min", exercises: 5 },
+        { name: "Full Body C (Core & HIIT)", duration: "40 min", exercises: 6 }
+      ];
+    } else if (preferences.days === "4 Days") {
+      routines = [
+        { name: "Upper Body Hypertrophy", duration: "50 min", exercises: 6 },
+        { name: "Lower Body Strength", duration: "50 min", exercises: 5 },
+        { name: "Upper Body Power", duration: "45 min", exercises: 6 },
+        { name: "Lower Body & Abs", duration: "45 min", exercises: 5 }
+      ];
+    } else {
+      routines = [
+        { name: "Push Day (Chest, Shoulders, Triceps)", duration: "50 min", exercises: 6 },
+        { name: "Pull Day (Back & Biceps)", duration: "50 min", exercises: 6 },
+        { name: "Legs & Abs Day", duration: "55 min", exercises: 6 },
+        { name: "Upper Body Pump", duration: "45 min", exercises: 5 }
+      ];
+    }
+
+    setGeneratedPlan({
+      title: planTitle,
+      preferences,
+      routines
+    });
+  };
+
+  const defaultTemplates = [
+    {
+      id: "ppl-push",
+      name: "Push Day (Chest, Shoulders & Triceps)",
+      category: "Push/Pull/Legs",
+      duration: "45 min",
+      exercisesCount: 6,
+      target: "Chest, Shoulders, Triceps"
+    },
+    {
+      id: "ppl-pull",
+      name: "Pull Day (Back, Lat & Biceps)",
+      category: "Push/Pull/Legs",
+      duration: "50 min",
+      exercisesCount: 6,
+      target: "Back, Biceps, Rear Delt"
+    },
+    {
+      id: "ppl-legs",
+      name: "Legs & Abs Hypertrophy",
+      category: "Push/Pull/Legs",
+      duration: "55 min",
+      exercisesCount: 6,
+      target: "Quads, Hamstrings, Glutes, Abs"
+    },
+    {
+      id: "home-bodyweight",
+      name: "Home Calisthenics Burn",
+      category: "No Equipment",
+      duration: "30 min",
+      exercisesCount: 5,
+      target: "Full Body"
+    }
+  ];
+
   return (
-    <div className="space-y-5 pb-4 animate-fade-in">
+    <div className="space-y-6 pb-20">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Workouts</h1>
-          <p className="page-subtitle">{workouts.length} saved routines</p>
-        </div>
-        <button
-          onClick={() => setShowBuilder(!showBuilder)}
-          className="btn-brand p-2.5"
-          aria-label="Create workout"
-        >
-          <Plus size={18} />
-        </button>
-      </div>
-
-      {showBuilder && (
-        <div className="surface p-4 space-y-5 animate-slide-up">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-white">Create Workout</h2>
-              <p className="text-xs text-zinc-500">
-                {current.exercises.length} exercises selected
-              </p>
-            </div>
-            <button
-              onClick={() => setShowBuilder(false)}
-              className="btn-ghost px-3 py-2 text-xs"
-            >
-              Done
-            </button>
-          </div>
-
-          <section className="space-y-2">
-            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-[11px] text-white">
-                1
-              </span>
-              Name
-            </div>
-            <input
-              type="text"
-              placeholder="Workout name"
-              value={current.name}
-              onChange={(e) => setName(e.target.value)}
-              className="input-modern w-full text-sm"
-            />
-          </section>
-
-          <section className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-[11px] text-white">
-                2
-              </span>
-              Add Exercises
-            </div>
-            <div className="relative">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
-              />
-              <input
-                type="text"
-                placeholder="Search exercises, muscle, or equipment"
-                value={exerciseQuery}
-                onChange={(e) => setExerciseQuery(e.target.value)}
-                className="input-modern w-full pl-10 text-sm"
-              />
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {exerciseMatches.map((ex) => (
-                <button
-                  key={ex.id}
-                  onClick={() => addExercise(ex)}
-                  className="bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/40 rounded-xl p-3 text-left transition-colors"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-zinc-200 truncate">
-                      {ex.name}
-                    </p>
-                    <Plus size={14} className="text-brand-400 shrink-0" />
-                  </div>
-                  <p className="text-[11px] text-zinc-500 capitalize truncate mt-1">
-                    {ex.target} • {ex.equipment}
-                  </p>
-                </button>
-              ))}
-            </div>
-            {!exerciseMatches.length && (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-5 text-center">
-                <Dumbbell size={22} className="mx-auto mb-2 text-zinc-600" />
-                <p className="text-sm text-zinc-500">No matching exercises</p>
-              </div>
-            )}
-          </section>
-
-          <section className="space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-[11px] text-white">
-                3
-              </span>
-              Review Plan
-            </div>
-
-            {current.exercises.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-zinc-700 bg-zinc-900/50 px-4 py-6 text-center">
-                <Dumbbell size={26} className="mx-auto mb-2 text-zinc-600" />
-                <p className="text-sm text-zinc-500">No exercises selected</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {current.exercises.map((ex, i) => (
-                  <div
-                    key={ex.id}
-                    className="bg-zinc-800/60 rounded-xl p-3 border border-zinc-700/30"
-                  >
-                    <div className="flex items-center gap-3">
-                      <GripVertical size={14} className="text-zinc-600 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{ex.name}</p>
-                        <p className="text-[11px] text-zinc-500 capitalize">
-                          {i + 1}. {ex.target}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => removeExercise(ex.id)}
-                        className="p-2 text-red-400 hover:bg-red-900/20 rounded-lg transition-colors"
-                        aria-label={`Remove ${ex.name}`}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      <label className="bg-zinc-900 rounded-lg px-2 py-1.5">
-                        <span className="block text-[10px] text-zinc-500">
-                          Sets
-                        </span>
-                        <input
-                          type="number"
-                          value={ex.target_sets}
-                          min="1"
-                          max="10"
-                          onChange={(e) =>
-                            updateParam(
-                              ex.id,
-                              "target_sets",
-                              parseInt(e.target.value) || 1,
-                            )
-                          }
-                          className="w-full bg-transparent text-sm font-semibold outline-none"
-                        />
-                      </label>
-                      <label className="bg-zinc-900 rounded-lg px-2 py-1.5">
-                        <span className="block text-[10px] text-zinc-500">
-                          Reps
-                        </span>
-                        <input
-                          type="number"
-                          value={ex.target_reps}
-                          min="1"
-                          max="100"
-                          onChange={(e) =>
-                            updateParam(
-                              ex.id,
-                              "target_reps",
-                              parseInt(e.target.value) || 1,
-                            )
-                          }
-                          className="w-full bg-transparent text-sm font-semibold outline-none"
-                        />
-                      </label>
-                      <label className="bg-zinc-900 rounded-lg px-2 py-1.5">
-                        <span className="block text-[10px] text-zinc-500">
-                          Rest
-                        </span>
-                        <input
-                          type="number"
-                          value={ex.rest_seconds}
-                          min="0"
-                          max="600"
-                          step="15"
-                          onChange={(e) =>
-                            updateParam(
-                              ex.id,
-                              "rest_seconds",
-                              parseInt(e.target.value) || 0,
-                            )
-                          }
-                          className="w-full bg-transparent text-sm font-semibold outline-none"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              onClick={handleSave}
-              disabled={saving || !current.name.trim() || !current.exercises.length}
-              className="btn-brand flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:active:scale-100"
-            >
-              <Check size={16} />
-              {saving ? "Saving..." : "Save Workout"}
-            </button>
-            {(current.name || current.exercises.length > 0) && (
-              <button onClick={clearCurrent} className="btn-ghost">
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {!showBuilder && workouts.length === 0 && (
-        <button
-          onClick={() => setShowBuilder(true)}
-          className="w-full rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/40 p-8 text-center hover:border-brand-700/70 hover:bg-zinc-900/70 transition-colors"
-        >
-          <Dumbbell size={28} className="mx-auto mb-3 text-zinc-600" />
-          <p className="font-semibold text-zinc-300">Create your first workout</p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Pick exercises and set targets in one place.
+          <h1 className="page-title flex items-center gap-2">
+            <Dumbbell className="text-emerald-400" size={26} /> Workouts & Plans
+          </h1>
+          <p className="page-subtitle">
+            Manage your custom workout routines or generate personalized splits.
           </p>
+        </div>
+
+        <button
+          onClick={() => setShowGenerator(true)}
+          className="btn-brand text-xs px-4 py-2.5 flex items-center gap-1.5 shrink-0"
+        >
+          <Sparkles size={15} /> AI Plan Wizard
         </button>
+      </div>
+
+      {/* Active Generated Plan Banner */}
+      {generatedPlan && (
+        <div className="surface p-5 border border-emerald-500/50 bg-gradient-to-r from-zinc-900 via-zinc-900 to-emerald-950/40">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="badge bg-emerald-500/10 text-emerald-400 border-emerald-500/30 font-bold">
+                GENERATED PLAN
+              </span>
+              <span className="badge">{generatedPlan.preferences.level}</span>
+            </div>
+            <button
+              onClick={() => setGeneratedPlan(null)}
+              className="text-xs text-zinc-500 hover:text-zinc-300"
+            >
+              Clear
+            </button>
+          </div>
+          <h3 className="text-lg font-black text-white">{generatedPlan.title}</h3>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Tailored for {generatedPlan.preferences.equipment} access.
+          </p>
+
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {generatedPlan.routines.map((r, idx) => (
+              <div key={idx} className="bg-zinc-950/80 p-3.5 rounded-2xl border border-zinc-800 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-white">{r.name}</div>
+                  <div className="text-[11px] text-zinc-400">{r.duration} • {r.exercises} exercises</div>
+                </div>
+                <Link
+                  to={`/play/generated-${idx}`}
+                  className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all"
+                >
+                  Start
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
+      {/* Routine Templates */}
       <div className="space-y-3">
-        {workouts.map((w) => (
-          <div key={w.id} className="surface surface-hover">
-            <div
-              className="p-4 flex items-center justify-between cursor-pointer"
-              onClick={() => setExpanded(expanded === w.id ? null : w.id)}
-            >
-              <div>
-                <h3 className="font-semibold text-zinc-200">{w.name}</h3>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  {w.exercises?.length || 0} exercises • {w.session_count || 0}{" "}
-                  sessions
-                </p>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-white">Preset Workout Routines</h2>
+          <span className="text-xs text-zinc-500">4 Routines</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {defaultTemplates.map((tpl) => (
+            <div key={tpl.id} className="surface p-5 flex flex-col justify-between surface-hover space-y-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="badge text-[10px] text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
+                    {tpl.category}
+                  </span>
+                  <span className="text-xs text-zinc-400 font-medium">{tpl.duration}</span>
+                </div>
+                <h3 className="text-base font-bold text-white">{tpl.name}</h3>
+                <p className="text-xs text-zinc-400">Targets: {tpl.target}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    nav(`/play/${w.id}`);
-                  }}
-                  className="p-2 bg-brand-600 hover:bg-brand-500 rounded-xl text-white transition-colors"
+
+              <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80">
+                <span className="text-xs text-zinc-500">{tpl.exercisesCount} Exercises</span>
+                <Link
+                  to={`/play/${tpl.id}`}
+                  className="btn-brand text-xs py-2 px-4 flex items-center gap-1 font-bold"
                 >
-                  <Play size={14} fill="white" />
-                </button>
-                {expanded === w.id ? (
-                  <ChevronUp size={16} className="text-zinc-500" />
-                ) : (
-                  <ChevronDown size={16} className="text-zinc-500" />
-                )}
+                  <Play size={13} className="fill-current" /> Start Routine
+                </Link>
               </div>
             </div>
-            {expanded === w.id && (
-              <div className="px-4 pb-4 space-y-2 border-t border-zinc-800/60 pt-3">
-                {w.exercises?.map((we, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <span className="text-zinc-300">
-                      {we.exercise?.name || we.name}
-                    </span>
-                    <span className="text-zinc-500 text-xs">
-                      {we.target_sets}x{we.target_reps}
-                    </span>
-                  </div>
-                ))}
-                <button
-                  onClick={() => deleteById(w.id)}
-                  className="btn-danger w-full mt-2 text-xs py-2"
-                >
-                  <Trash2 size={12} className="inline mr-1" /> Delete Workout
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+
+      {/* Plan Generator Modal */}
+      <PlanGeneratorModal
+        isOpen={showGenerator}
+        onClose={() => setShowGenerator(false)}
+        onGenerate={handlePlanGenerated}
+      />
     </div>
   );
 }

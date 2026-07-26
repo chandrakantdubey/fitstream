@@ -3,18 +3,14 @@ import Navbar from "./components/Navbar";
 import ToastContainer from "./components/ToastContainer";
 import useAuthStore from "./stores/authStore";
 import Home from "./pages/Home";
-import Library from "./pages/Library";
+import Challenges from "./pages/Challenges";
 import Workouts from "./pages/Workouts";
 import WorkoutPlayer from "./pages/WorkoutPlayer";
-import Feeds from "./pages/Feeds";
-import Progress from "./pages/Progress";
-import Settings from "./pages/Settings";
+import Library from "./pages/Library";
+import MapTracker from "./pages/MapTracker";
+import KnowledgeBase from "./pages/KnowledgeBase";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import BodyMetrics from "./pages/BodyMetrics";
-import Programs from "./pages/Programs";
-import Goals from "./pages/Goals";
-import Schedule from "./pages/Schedule";
 
 function ProtectedRoute({ children }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -23,7 +19,7 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   return (
-    <div className="min-h-screen pb-24 bg-zinc-950">
+    <div className="min-h-screen pb-24 bg-zinc-950 text-zinc-100 font-sans">
       <main className="max-w-2xl mx-auto px-4 pt-6">
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -33,9 +29,9 @@ export default function App() {
               <Home />
             </ProtectedRoute>
           } />
-          <Route path="/library" element={
+          <Route path="/challenges" element={
             <ProtectedRoute>
-              <Library />
+              <Challenges />
             </ProtectedRoute>
           } />
           <Route path="/workouts" element={
@@ -48,41 +44,22 @@ export default function App() {
               <WorkoutPlayer />
             </ProtectedRoute>
           } />
-          <Route path="/feeds" element={
+          <Route path="/library" element={
             <ProtectedRoute>
-              <Feeds />
+              <Library />
             </ProtectedRoute>
           } />
-          <Route path="/progress" element={
+          <Route path="/maps" element={
             <ProtectedRoute>
-              <Progress />
+              <MapTracker />
             </ProtectedRoute>
           } />
-          <Route path="/body-metrics" element={
+          <Route path="/knowledge" element={
             <ProtectedRoute>
-              <BodyMetrics />
+              <KnowledgeBase />
             </ProtectedRoute>
           } />
-          <Route path="/programs" element={
-            <ProtectedRoute>
-              <Programs />
-            </ProtectedRoute>
-          } />
-          <Route path="/goals" element={
-            <ProtectedRoute>
-              <Goals />
-            </ProtectedRoute>
-          } />
-          <Route path="/schedule" element={
-            <ProtectedRoute>
-              <Schedule />
-            </ProtectedRoute>
-          } />
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          } />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <Navbar />
