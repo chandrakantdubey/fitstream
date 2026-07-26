@@ -28,69 +28,46 @@ According to sports science literature (Schoenfeld et al.):
 
 ### 3. Exercise Selection (Compound vs Isolation)
 - **Compound Exercises (60–70% of routine)**: Squats, Deadlifts, Bench Press, Overhead Press, Pull-ups, Rows. Recruits multiple joints & maximum muscle mass.
-- **Isolation Exercises (30–40% of routine)**: Bicep Curls, Lateral Raises, Leg Extensions, Tricep Extensions. Targets weak points directly.
-        """
+- **Isolation Exercises (30–40% of routine)**: Bicep Curls, Tricep Extensions, Lateral Raises, Leg Extensions. Direct targeted hypertrophy.
+"""
     },
     {
         "slug": "progressive-overload-principles",
-        "title": "The Golden Rule: Progressive Overload Explained",
-        "category": "Exercise Science",
-        "summary": "How to consistently build strength and muscle over time without hitting training plateaus.",
+        "title": "Mastering Progressive Overload: Reps, Weight & Density",
+        "category": "Training Principles",
+        "summary": "Learn how to consistently stimulate muscle growth using load progression, double progression, and density density techniques.",
         "icon": "trending-up",
         "read_time": "4 min read",
         "content": """
-### What is Progressive Overload?
-Progressive overload involves gradually increasing the stress placed upon the musculoskeletal system during workout routines.
-
-### 4 Ways to Progressively Overload:
-1. **Increase Resistance (Weight)**: Adding 1.25kg - 2.5kg once you hit the top of your rep target.
-2. **Increase Volume (Reps / Sets)**: Going from 3 sets of 8 to 3 sets of 12 before increasing load.
-3. **Improve Execution & Tempo**: Slowing down eccentric (lowering) phases to 3 seconds for increased time under tension.
-4. **Decrease Rest Intervals**: Moving from 2 minutes to 90 seconds rest while maintaining weight and reps.
-        """
+### Progressive Overload Methods
+1. **Load Overload**: Adding weight to the bar when target reps are hit (e.g. 60kg $\rightarrow$ 62.5kg).
+2. **Rep Overload (Double Progression)**: Increasing reps with constant weight before increasing load (e.g. 3x8 $\rightarrow$ 3x9 $\rightarrow$ 3x10 $\rightarrow$ add weight).
+3. **Set Density**: Decreasing rest intervals between sets while keeping weight and reps constant.
+4. **Execution Quality**: Improving time-under-tension and controlled eccentric (negative) phase.
+"""
     },
     {
-        "slug": "rpe-and-rir-scale",
-        "title": "RPE (Rate of Perceived Exertion) & Reps in Reserve (RIR)",
-        "category": "Intensity Management",
-        "summary": "Master workout intensity auto-regulation using RPE 1-10 and RIR scales.",
-        "icon": "gauge",
-        "read_time": "3 min read",
+        "slug": "recovery-sleep-nutrition",
+        "title": "Recovery Science: Sleep, Hydration & Protein Timing",
+        "category": "Recovery Science",
+        "summary": "Maximize muscle protein synthesis (MPS) and Central Nervous System (CNS) recovery.",
+        "icon": "shield",
+        "read_time": "6 min read",
         "content": """
-### Understanding RPE and RIR
-- **RPE 10 (0 RIR)**: Maximum effort. Could not complete another rep.
-- **RPE 9 (1 RIR)**: 1 rep left in the tank before failure.
-- **RPE 8 (2 RIR)**: 2 reps left in the tank. (Ideal sweet spot for hyperbolic strength & hypertrophy).
-- **RPE 7 (3 RIR)**: 3 reps remaining. Good for warmup sets or dynamic speed work.
-
-### Recommended RPE Target
-For most working sets, target **RPE 7.5 to 9** (1 to 3 reps in reserve) to maximize stimulus while minimizing CNS fatigue.
-        """
-    },
-    {
-        "slug": "warmup-and-mobility-routine",
-        "title": "Essential Warm-up & Injury Prevention Routine",
-        "category": "Form & Recovery",
-        "summary": "A 5-minute dynamic warm-up protocol to prime joints and increase blood flow before heavy lifting.",
-        "icon": "shield-check",
-        "read_time": "4 min read",
-        "content": """
-### Never Skip Dynamic Warm-ups!
-Static stretching before lifting decreases peak power output. Use **Dynamic Warm-ups** instead:
-
-1. **Arm Circles & Cat-Cow**: 1 minute (upper body mobility).
-2. **Leg Swings & Bodyweight Squats**: 1 minute (hips & glute activation).
-3. **World's Greatest Stretch**: 5 reps per side (thoracic spine & hamstrings).
-4. **Pyramid Warmup Sets**: Perform 50% 1RM x 5, then 75% 1RM x 2 before your main working set.
-        """
+### Recovery Fundamentals
+- **Protein Intake**: 1.6–2.2g of protein per kg of bodyweight daily.
+- **Hydration Target**: 35ml of water per kg of bodyweight daily + 500ml per hour of intense exercise.
+- **Sleep Quality**: 7–9 hours of deep sleep to maximize Growth Hormone (GH) release.
+"""
     }
 ]
 
+
 @router.get("/articles")
+@router.get("/wiki")
 def get_knowledge_articles(category: Optional[str] = None, db: Session = Depends(get_db)):
     articles = db.query(KnowledgeArticle).all()
     if not articles:
-        # Seed default articles if empty
         for item in DEFAULT_ARTICLES:
             art = KnowledgeArticle(**item)
             db.add(art)
@@ -100,22 +77,22 @@ def get_knowledge_articles(category: Optional[str] = None, db: Session = Depends
     if category:
         articles = [a for a in articles if a.category.lower() == category.lower()]
     
-    return articles
+    return {"articles": articles}
+
 
 @router.get("/articles/{slug}")
 def get_article_by_slug(slug: str, db: Session = Depends(get_db)):
     article = db.query(KnowledgeArticle).filter(KnowledgeArticle.slug == slug).first()
     if not article:
-        # Check default articles list fallback
         item = next((a for a in DEFAULT_ARTICLES if a["slug"] == slug), None)
         if item:
             return item
         raise HTTPException(status_code=404, detail="Article not found")
     return article
 
+
 @router.get("/calculator/1rm")
 def calculate_one_rep_max(weight: float, reps: int):
-    """Epley formula for 1RM estimation"""
     if reps <= 0 or weight <= 0:
         return {"estimated_1rm": 0}
     if reps == 1:

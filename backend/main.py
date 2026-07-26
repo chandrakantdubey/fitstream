@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import engine, Base, SessionLocal
@@ -41,7 +42,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="FitStream API",
-    version="2.1.0",
+    version="2.2.0",
     lifespan=lifespan,
 )
 
@@ -52,6 +53,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Global Exception Handlers
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail, "status_code": exc.status_code}
+    )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    msg = errors[0].get("msg", "Validation error") if errors else "Invalid request format"
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": msg, "errors": errors, "status_code": 422}
+    )
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    print(f"Unhandled server error: {exc}")
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Internal server error occurred", "status_code": 500}
+    )
 
 app.include_router(exercises_router)
 app.include_router(workouts_router)
@@ -74,7 +100,7 @@ app.include_router(reset_router)
 def root():
     return {
         "app": "FitStream API",
-        "version": "2.1.0",
+        "version": "2.2.0",
         "db": "sqlite",
         "status": "healthy"
     }

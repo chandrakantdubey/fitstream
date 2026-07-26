@@ -27,6 +27,13 @@ class WorkoutCreate(BaseModel):
     exercises: List[ExerciseInput] = []
 
 
+class LogSetInput(BaseModel):
+    workout_exercise_id: str
+    set_number: int
+    reps_completed: int
+    weight_kg: float = 0.0
+
+
 PRESET_ROUTINES = [
     {
         "id": "ppl-push",
@@ -100,14 +107,12 @@ def get_user_workouts(user_id: str = "1", db: Session = Depends(get_db)):
                 "name": we.exercise.name if we.exercise else "Exercise",
                 "target": we.exercise.target if we.exercise else "Full Body",
                 "sets": we.target_sets,
-                "reps": we.target_reps,
-                "weight": we.target_weight_kg
+                "reps": we.target_reps
             })
         results.append({
             "id": w.id,
             "name": w.name,
-            "description": w.description,
-            "category": w.category,
+            "category": getattr(w, "category", "General"),
             "exercises": ex_list,
             "created_at": w.created_at.isoformat() if w.created_at else None
         })
@@ -119,9 +124,7 @@ def create_custom_workout(data: WorkoutCreate, db: Session = Depends(get_db)):
     workout = Workout(
         id=str(uuid.uuid4())[:8],
         user_id=str(data.user_id),
-        name=data.name,
-        description=data.description,
-        category=data.category
+        name=data.name
     )
     db.add(workout)
     db.commit()
@@ -141,12 +144,12 @@ def create_custom_workout(data: WorkoutCreate, db: Session = Depends(get_db)):
             db.refresh(ex_obj)
 
         we = WorkoutExercise(
+            id=str(uuid.uuid4())[:8],
             workout_id=workout.id,
             exercise_id=ex_obj.id,
             order_index=idx,
             target_sets=ex_in.sets,
-            target_reps=ex_in.reps,
-            target_weight_kg=ex_in.weight
+            target_reps=ex_in.reps
         )
         db.add(we)
 
@@ -171,15 +174,13 @@ def get_workout_details(workout_id: str, db: Session = Depends(get_db)):
             "name": we.exercise.name if we.exercise else "Exercise",
             "target": we.exercise.target if we.exercise else "Full Body",
             "sets": we.target_sets,
-            "reps": we.target_reps,
-            "weight": we.target_weight_kg
+            "reps": we.target_reps
         })
 
     return {
         "id": workout.id,
         "name": workout.name,
-        "description": workout.description,
-        "category": workout.category,
+        "category": "Custom",
         "exercises": ex_list
     }
 
@@ -208,19 +209,16 @@ def start_workout_session(workout_id: str, user_id: str = "1", db: Session = Dep
 @router.post("/sessions/{session_id}/sets")
 def log_session_set(
     session_id: str,
-    workout_exercise_id: str,
-    set_number: int,
-    reps_completed: int,
-    weight_kg: float,
+    data: LogSetInput,
     db: Session = Depends(get_db)
 ):
     logged_set = SessionSet(
         id=str(uuid.uuid4())[:8],
         session_id=session_id,
-        workout_exercise_id=workout_exercise_id,
-        set_number=set_number,
-        reps_completed=reps_completed,
-        weight_kg=weight_kg,
+        workout_exercise_id=data.workout_exercise_id,
+        set_number=data.set_number,
+        reps_completed=data.reps_completed,
+        weight_kg=data.weight_kg,
         completed_at=datetime.utcnow()
     )
     db.add(logged_set)
