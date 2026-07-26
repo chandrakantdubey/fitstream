@@ -9,7 +9,6 @@ from app.models.challenge import UserChallenge
 
 router = APIRouter(prefix="/challenges", tags=["30-Day Challenges"])
 
-# Pre-defined Leap-Fitness style 30-day challenges templates
 CHALLENGES_CATALOG = [
     {
         "id": "abs-30",
@@ -78,11 +77,11 @@ CHALLENGES_CATALOG = [
 ]
 
 class ChallengeStartReq(BaseModel):
-    user_id: int = 1
+    user_id: str = "1"
     challenge_id: str
 
 class CompleteDayReq(BaseModel):
-    user_id: int = 1
+    user_id: str = "1"
     challenge_id: str
     day_number: int
 
@@ -91,8 +90,8 @@ def get_challenges_catalog():
     return CHALLENGES_CATALOG
 
 @router.get("/user")
-def get_user_challenges(user_id: int = 1, db: Session = Depends(get_db)):
-    active = db.query(UserChallenge).filter(UserChallenge.user_id == user_id).all()
+def get_user_challenges(user_id: str = "1", db: Session = Depends(get_db)):
+    active = db.query(UserChallenge).filter(UserChallenge.user_id == str(user_id)).all()
     results = []
     for ch in active:
         completed_days_list = json.loads(ch.completed_days or "[]")
@@ -112,19 +111,18 @@ def get_user_challenges(user_id: int = 1, db: Session = Depends(get_db)):
 
 @router.post("/start")
 def start_challenge(req: ChallengeStartReq, db: Session = Depends(get_db)):
-    # Find catalog template
     template = next((c for c in CHALLENGES_CATALOG if c["id"] == req.challenge_id), None)
     if not template:
         raise HTTPException(status_code=404, detail="Challenge template not found")
     
     existing = db.query(UserChallenge).filter(
-        UserChallenge.user_id == req.user_id,
+        UserChallenge.user_id == str(req.user_id),
         UserChallenge.challenge_id == req.challenge_id
     ).first()
 
     if not existing:
         existing = UserChallenge(
-            user_id=req.user_id,
+            user_id=str(req.user_id),
             challenge_id=req.challenge_id,
             title=template["title"],
             category=template["category"],
@@ -143,12 +141,24 @@ def start_challenge(req: ChallengeStartReq, db: Session = Depends(get_db)):
 @router.post("/complete-day")
 def complete_challenge_day(req: CompleteDayReq, db: Session = Depends(get_db)):
     ch = db.query(UserChallenge).filter(
-        UserChallenge.user_id == req.user_id,
+        UserChallenge.user_id == str(req.user_id),
         UserChallenge.challenge_id == req.challenge_id
     ).first()
 
     if not ch:
-        raise HTTPException(status_code=404, detail="Active user challenge not found")
+        # Auto start if missing
+        template = next((c for c in CHALLENGES_CATALOG if c["id"] == req.challenge_id), None)
+        title = template["title"] if template else "Challenge"
+        ch = UserChallenge(
+            user_id=str(req.user_id),
+            challenge_id=req.challenge_id,
+            title=title,
+            start_date=date.today(),
+            current_day=1,
+            completed_days="[]"
+        )
+        db.add(ch)
+        db.commit()
 
     completed_days_list = json.loads(ch.completed_days or "[]")
     if req.day_number not in completed_days_list:
@@ -170,25 +180,22 @@ def complete_challenge_day(req: CompleteDayReq, db: Session = Depends(get_db)):
     }
 
 @router.get("/details/{challenge_id}")
-def get_challenge_details(challenge_id: str, user_id: int = 1, db: Session = Depends(get_db)):
+def get_challenge_details(challenge_id: str, user_id: str = "1", db: Session = Depends(get_db)):
     template = next((c for c in CHALLENGES_CATALOG if c["id"] == challenge_id), None)
     if not template:
         raise HTTPException(status_code=404, detail="Challenge template not found")
     
     ch = db.query(UserChallenge).filter(
-        UserChallenge.user_id == user_id,
+        UserChallenge.user_id == str(user_id),
         UserChallenge.challenge_id == challenge_id
     ).first()
 
     completed_days = json.loads(ch.completed_days or "[]") if ch else []
     current_day = ch.current_day if ch else 1
 
-    # Generate 30 day schedule where days 4, 8, 12, 16, 20, 24, 28 are REST days
     schedule = []
     for day in range(1, 31):
         is_rest = (day % 4 == 0)
-        # Intensity scaling factor (1.0 to 1.5 multiplier over 30 days)
-        scale = 1.0 + (day / 60.0)
         exercises = []
         if not is_rest:
             for ex in template["routine_template"]:

@@ -5,9 +5,11 @@ import {
   Play,
   Sparkles,
   Layers,
+  Plus,
   Trash2
 } from "lucide-react";
 import PlanGeneratorModal from "../components/PlanGeneratorModal";
+import CreateWorkoutModal from "../components/CreateWorkoutModal";
 
 const API_BASE = "http://localhost:8000";
 
@@ -16,6 +18,7 @@ export default function Workouts() {
   const [presets, setPresets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [generatedPlan, setGeneratedPlan] = useState(null);
 
   const fetchWorkouts = async () => {
@@ -55,25 +58,37 @@ export default function Workouts() {
     fetchWorkouts();
   };
 
+  const handleCustomWorkoutCreated = () => {
+    fetchWorkouts();
+  };
+
   return (
     <div className="space-y-6 pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="page-title flex items-center gap-2">
             <Dumbbell className="text-emerald-400" size={26} /> Workouts & Plans
           </h1>
           <p className="page-subtitle">
-            Manage custom workout routines or generate personalized splits.
+            Create custom workout routines or generate personalized AI splits.
           </p>
         </div>
 
-        <button
-          onClick={() => setShowGenerator(true)}
-          className="btn-brand text-xs px-4 py-2.5 flex items-center gap-1.5 shrink-0"
-        >
-          <Sparkles size={15} /> AI Plan Wizard
-        </button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-ghost text-xs px-3 py-2.5 flex items-center justify-center gap-1.5 flex-1 sm:flex-none shrink-0"
+          >
+            <Plus size={15} /> Create Routine
+          </button>
+          <button
+            onClick={() => setShowGenerator(true)}
+            className="btn-brand text-xs px-3.5 py-2.5 flex items-center justify-center gap-1.5 flex-1 sm:flex-none shrink-0"
+          >
+            <Sparkles size={15} /> AI Plan Wizard
+          </button>
+        </div>
       </div>
 
       {/* Active Generated Plan Banner */}
@@ -116,7 +131,7 @@ export default function Workouts() {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="badge text-[10px] text-emerald-400 border-emerald-500/20 bg-emerald-500/10">
-                      CUSTOM PLAN
+                      CUSTOM ROUTINE
                     </span>
                     <button
                       onClick={() => handleDeleteWorkout(w.id)}
@@ -184,6 +199,12 @@ export default function Workouts() {
         isOpen={showGenerator}
         onClose={() => setShowGenerator(false)}
         onGenerate={handlePlanGenerated}
+      />
+
+      <CreateWorkoutModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onWorkoutCreated={handleCustomWorkoutCreated}
       />
     </div>
   );

@@ -51,16 +51,22 @@ def get_current_user(
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             user_id = payload.get("sub")
             if user_id:
-                user = db.query(User).filter(User.id == int(user_id) if str(user_id).isdigit() else User.id == user_id).first()
+                user = db.query(User).filter(User.id == str(user_id)).first()
                 if user:
                     return user
         except JWTError:
             pass
 
-    # Fallback to default demo user ID 1
-    user = db.query(User).filter(User.id == 1).first()
+    # Fallback to default demo user ID "1"
+    user = db.query(User).filter(User.id == "1").first()
     if not user:
-        user = User(id=1, email="demo@fitstream.app", hashed_password=get_password_hash("demo1234"), name="FitStream Athlete")
+        user = User(
+            id="1", 
+            email="demo@fitstream.app", 
+            username="demo", 
+            hashed_password=get_password_hash("demo1234"), 
+            full_name="FitStream Athlete"
+        )
         db.add(user)
         db.commit()
         db.refresh(user)

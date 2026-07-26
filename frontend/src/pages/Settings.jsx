@@ -1,10 +1,18 @@
 import { useState } from "react";
-import { Settings as SettingsIcon, User, Volume2, ShieldCheck, Database, Trash2, Award } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import useAuthStore from "../stores/authStore";
+import { Settings as SettingsIcon, User, Volume2, Database, LogOut } from "lucide-react";
 
 export default function Settings() {
-  const [voiceGender, setVoiceGender] = useState("Female");
+  const navigate = useNavigate();
+  const logout = useAuthStore((state) => state.logout);
   const [autoRestTimer, setAutoRestTimer] = useState(true);
   const [units, setUnits] = useState("Metric (kg, km)");
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <div className="space-y-6 pb-24">
@@ -13,25 +21,34 @@ export default function Settings() {
           <SettingsIcon className="text-emerald-400" size={26} /> Settings & Profile
         </h1>
         <p className="page-subtitle">
-          Manage your athlete profile, units, voice cues, and data preferences.
+          Manage athlete profile, units, voice cues, and data preferences.
         </p>
       </div>
 
       {/* Athlete Profile Card */}
-      <div className="surface p-6 flex items-center gap-4 border border-zinc-800">
-        <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-extrabold text-xl shrink-0">
-          FA
-        </div>
-        <div className="space-y-1 flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-white">FitStream Athlete</h2>
-            <span className="badge text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
-              PRO ATHLETE
-            </span>
+      <div className="surface p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-zinc-800">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-extrabold text-xl shrink-0">
+            FA
           </div>
-          <p className="text-xs text-zinc-400">demo@fitstream.app</p>
-          <div className="text-[11px] text-zinc-500">Member since July 2026</div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-white">FitStream Athlete</h2>
+              <span className="badge text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
+                PRO ATHLETE
+              </span>
+            </div>
+            <p className="text-xs text-zinc-400">demo@fitstream.app</p>
+            <div className="text-[11px] text-zinc-500">Member since July 2026</div>
+          </div>
         </div>
+
+        <button
+          onClick={handleLogout}
+          className="btn-danger text-xs py-2.5 px-4 font-bold flex items-center gap-2 w-full sm:w-auto justify-center"
+        >
+          <LogOut size={16} /> Log Out
+        </button>
       </div>
 
       {/* Workout Player Preferences */}
@@ -77,7 +94,7 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Application System & Database */}
+      {/* System & Storage */}
       <div className="surface p-6 space-y-4 border border-zinc-800">
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
           <Database size={18} className="text-blue-400" /> Database & Storage
@@ -86,8 +103,8 @@ export default function Settings() {
         <div className="space-y-3">
           <div className="flex items-center justify-between py-2">
             <div>
-              <div className="text-xs font-semibold text-white">Local Cache & Storage</div>
-              <div className="text-[11px] text-zinc-400">IndexedDB & SQLite Database Sync</div>
+              <div className="text-xs font-semibold text-white">Local Cache & SQLite Database</div>
+              <div className="text-[11px] text-zinc-400">IndexedDB & FastAPI SQLite Sync</div>
             </div>
             <span className="badge text-emerald-400 bg-emerald-500/10 border-emerald-500/30">
               HEALTHY (v2.1.0)

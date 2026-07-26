@@ -7,7 +7,7 @@ class DailyLog(Base):
     __tablename__ = "daily_logs"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
     log_date = Column(Date, default=date.today, nullable=False, index=True)
     water_ml = Column(Integer, default=0)
     target_water_ml = Column(Integer, default=2500)

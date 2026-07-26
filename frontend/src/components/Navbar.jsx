@@ -6,7 +6,8 @@ import {
   Dumbbell,
   BookOpen,
   MapPin,
-  Sparkles
+  Sparkles,
+  Settings
 } from "lucide-react";
 
 const items = [
@@ -16,6 +17,7 @@ const items = [
   { path: "/library", icon: BookOpen, label: "Exercises" },
   { path: "/maps", icon: MapPin, label: "Maps" },
   { path: "/knowledge", icon: Sparkles, label: "Knowledge" },
+  { path: "/settings", icon: Settings, label: "Settings" }
 ];
 
 export default function Navbar() {
@@ -33,13 +35,13 @@ export default function Navbar() {
             <Link
               key={path}
               to={path}
-              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
+              className={`flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl transition-all ${
                 isActive
                   ? "text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 shadow-sm"
                   : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              <Icon size={19} strokeWidth={isActive ? 2.5 : 1.8} />
+              <Icon size={18} strokeWidth={isActive ? 2.5 : 1.8} />
               <span className="text-[10px] font-medium">{label}</span>
             </Link>
           );

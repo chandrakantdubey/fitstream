@@ -11,12 +11,12 @@ from app.models.workout import WorkoutSession
 router = APIRouter(prefix="/daily", tags=["Daily Tracker"])
 
 class WaterUpdateReq(BaseModel):
-    user_id: int = 1
+    user_id: str = "1"
     amount_ml: int
     set_exact: bool = False
 
 class BodyMetricsLogReq(BaseModel):
-    user_id: int = 1
+    user_id: str = "1"
     weight_kg: Optional[float] = None
     waist_cm: Optional[float] = None
     chest_cm: Optional[float] = None
@@ -24,27 +24,24 @@ class BodyMetricsLogReq(BaseModel):
     notes: Optional[str] = None
 
 @router.get("/log")
-def get_daily_log(user_id: int = 1, log_date: Optional[str] = None, db: Session = Depends(get_db)):
+def get_daily_log(user_id: str = "1", log_date: Optional[str] = None, db: Session = Depends(get_db)):
     target_date = date.fromisoformat(log_date) if log_date else date.today()
-    log = db.query(DailyLog).filter(DailyLog.user_id == user_id, DailyLog.log_date == target_date).first()
+    log = db.query(DailyLog).filter(DailyLog.user_id == str(user_id), DailyLog.log_date == target_date).first()
     if not log:
-        log = DailyLog(user_id=user_id, log_date=target_date, water_ml=0, target_water_ml=2500, active_minutes=0, calories_burned=0)
+        log = DailyLog(user_id=str(user_id), log_date=target_date, water_ml=0, target_water_ml=2500, active_minutes=0, calories_burned=0)
         db.add(log)
         db.commit()
         db.refresh(log)
 
-    # Calculate active minutes and calories from workouts completed on this date
     start_dt = datetime.combine(target_date, datetime.min.time())
     end_dt = datetime.combine(target_date, datetime.max.time())
     sessions = db.query(WorkoutSession).filter(
-        WorkoutSession.user_id == user_id,
         WorkoutSession.started_at >= start_dt,
         WorkoutSession.started_at <= end_dt
     ).all()
 
     total_duration_sec = sum([s.duration_seconds or 0 for s in sessions if s.completed_at])
     log.active_minutes = round(total_duration_sec / 60)
-    # Estimate ~8 calories per active minute
     log.calories_burned = log.active_minutes * 8
     db.commit()
 
@@ -66,9 +63,9 @@ def get_daily_log(user_id: int = 1, log_date: Optional[str] = None, db: Session 
 @router.post("/water")
 def update_water_intake(req: WaterUpdateReq, db: Session = Depends(get_db)):
     today = date.today()
-    log = db.query(DailyLog).filter(DailyLog.user_id == req.user_id, DailyLog.log_date == today).first()
+    log = db.query(DailyLog).filter(DailyLog.user_id == str(req.user_id), DailyLog.log_date == today).first()
     if not log:
-        log = DailyLog(user_id=req.user_id, log_date=today, water_ml=0, target_water_ml=2500)
+        log = DailyLog(user_id=str(req.user_id), log_date=today, water_ml=0, target_water_ml=2500)
         db.add(log)
     
     if req.set_exact:
@@ -83,9 +80,9 @@ def update_water_intake(req: WaterUpdateReq, db: Session = Depends(get_db)):
 @router.post("/metrics")
 def log_body_metrics(req: BodyMetricsLogReq, db: Session = Depends(get_db)):
     today = date.today()
-    log = db.query(DailyLog).filter(DailyLog.user_id == req.user_id, DailyLog.log_date == today).first()
+    log = db.query(DailyLog).filter(DailyLog.user_id == str(req.user_id), DailyLog.log_date == today).first()
     if not log:
-        log = DailyLog(user_id=req.user_id, log_date=today)
+        log = DailyLog(user_id=str(req.user_id), log_date=today)
         db.add(log)
     
     if req.weight_kg is not None: log.weight_kg = req.weight_kg
@@ -98,15 +95,13 @@ def log_body_metrics(req: BodyMetricsLogReq, db: Session = Depends(get_db)):
     return {"message": "Metrics saved successfully", "date": str(today)}
 
 @router.get("/streak")
-def get_user_streak(user_id: int = 1, db: Session = Depends(get_db)):
-    # Get all distinct workout session dates completed by user
-    sessions = db.query(WorkoutSession).filter(WorkoutSession.user_id == user_id, WorkoutSession.completed_at != None).all()
+def get_user_streak(user_id: str = "1", db: Session = Depends(get_db)):
+    sessions = db.query(WorkoutSession).filter(WorkoutSession.completed_at != None).all()
     workout_dates = set([s.started_at.date() for s in sessions if s.started_at])
 
     today = date.today()
     streak = 0
     curr = today
-    # Check if workout today or yesterday to preserve streak
     if curr not in workout_dates and (curr - timedelta(days=1)) in workout_dates:
         curr = curr - timedelta(days=1)
     
@@ -114,7 +109,6 @@ def get_user_streak(user_id: int = 1, db: Session = Depends(get_db)):
         streak += 1
         curr -= timedelta(days=1)
     
-    # Calendar heatmap for past 60 days
     heatmap = {}
     for i in range(60):
         d = today - timedelta(days=i)

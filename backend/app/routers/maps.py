@@ -15,9 +15,9 @@ class CoordinatePoint(BaseModel):
     speed_kmh: Optional[float] = None
 
 class SaveMapRouteReq(BaseModel):
-    user_id: int = 1
+    user_id: str = "1"
     title: str = "Outdoor Workout"
-    activity_type: str = "Running" # Running, Cycling, Walking
+    activity_type: str = "Running"
     distance_km: float
     duration_seconds: int
     avg_speed_kmh: float
@@ -30,7 +30,7 @@ class SaveMapRouteReq(BaseModel):
 def save_map_route(req: SaveMapRouteReq, db: Session = Depends(get_db)):
     coords_json = json.dumps([p.dict() for p in req.coordinates])
     route = MapRoute(
-        user_id=req.user_id,
+        user_id=str(req.user_id),
         title=req.title,
         activity_type=req.activity_type,
         distance_km=req.distance_km,
@@ -55,8 +55,8 @@ def save_map_route(req: SaveMapRouteReq, db: Session = Depends(get_db)):
     }
 
 @router.get("/routes")
-def get_map_routes(user_id: int = 1, limit: int = 20, db: Session = Depends(get_db)):
-    routes = db.query(MapRoute).filter(MapRoute.user_id == user_id).order_by(MapRoute.created_at.desc()).limit(limit).all()
+def get_map_routes(user_id: str = "1", limit: int = 20, db: Session = Depends(get_db)):
+    routes = db.query(MapRoute).filter(MapRoute.user_id == str(user_id)).order_by(MapRoute.created_at.desc()).limit(limit).all()
     results = []
     for r in routes:
         coords = json.loads(r.coordinates_json or "[]")
@@ -75,8 +75,8 @@ def get_map_routes(user_id: int = 1, limit: int = 20, db: Session = Depends(get_
     return results
 
 @router.get("/routes/{route_id}")
-def get_map_route_detail(route_id: int, user_id: int = 1, db: Session = Depends(get_db)):
-    route = db.query(MapRoute).filter(MapRoute.id == route_id, MapRoute.user_id == user_id).first()
+def get_map_route_detail(route_id: int, user_id: str = "1", db: Session = Depends(get_db)):
+    route = db.query(MapRoute).filter(MapRoute.id == route_id, MapRoute.user_id == str(user_id)).first()
     if not route:
         raise HTTPException(status_code=404, detail="Route not found")
     
@@ -95,8 +95,8 @@ def get_map_route_detail(route_id: int, user_id: int = 1, db: Session = Depends(
     }
 
 @router.delete("/routes/{route_id}")
-def delete_map_route(route_id: int, user_id: int = 1, db: Session = Depends(get_db)):
-    route = db.query(MapRoute).filter(MapRoute.id == route_id, MapRoute.user_id == user_id).first()
+def delete_map_route(route_id: int, user_id: str = "1", db: Session = Depends(get_db)):
+    route = db.query(MapRoute).filter(MapRoute.id == route_id, MapRoute.user_id == str(user_id)).first()
     if not route:
         raise HTTPException(status_code=404, detail="Route not found")
     db.delete(route)
