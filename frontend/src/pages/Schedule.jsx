@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { Plus, Calendar as CalendarIcon, Clock, Check, X } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Clock, Check, X, Dumbbell } from "lucide-react";
 import {
   completeScheduledWorkout,
   fetchCalendar as loadCalendar,
   fetchUpcomingWorkouts,
   skipScheduledWorkout,
+  scheduleWorkout,
+  fetchWorkouts,
 } from "../utils/api";
 
 export default function Schedule() {
@@ -13,11 +15,26 @@ export default function Schedule() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [workouts, setWorkouts] = useState([]);
+  const [selectedWorkout, setSelectedWorkout] = useState(null);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchCalendar();
     fetchUpcoming();
+    fetchWorkoutsList();
   }, [currentMonth]);
+
+  const fetchWorkoutsList = async () => {
+    try {
+      const data = await fetchWorkouts();
+      setWorkouts(data);
+    } catch (err) {
+      console.error('Failed to fetch workouts:', err);
+    }
+  };
 
   const fetchCalendar = async () => {
     try {
@@ -57,6 +74,37 @@ export default function Schedule() {
     } catch (err) {
       console.error('Failed to skip workout:', err);
     }
+  };
+
+  const handleScheduleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedWorkout || !scheduleDate) return;
+    
+    setLoading(true);
+    try {
+      await scheduleWorkout({
+        workout_id: selectedWorkout,
+        scheduled_date: new Date(scheduleDate).toISOString(),
+        scheduled_time: scheduleTime || null,
+        reminder_minutes_before: 30,
+      });
+      setShowAddModal(false);
+      setSelectedWorkout(null);
+      setScheduleDate('');
+      setScheduleTime('');
+      fetchCalendar();
+      fetchUpcoming();
+    } catch (err) {
+      console.error('Failed to schedule workout:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDateClick = (dateKey) => {
+    setSelectedDate(dateKey);
+    setScheduleDate(dateKey);
+    setShowAddModal(true);
   };
 
   const getDaysInMonth = (date) => {
@@ -126,13 +174,13 @@ export default function Schedule() {
             return (
               <div
                 key={day}
-                onClick={() => setSelectedDate(dateKey)}
+                onClick={() => handleDateClick(dateKey)}
                 className={`aspect-square rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
                   hasWorkout
                     ? isCompleted
                       ? 'bg-brand-900/30 border border-brand-500/30'
                       : 'bg-zinc-800 border border-zinc-700'
-                    : 'bg-zinc-900/50'
+                    : 'bg-zinc-900/50 hover:bg-zinc-800/50'
                 }`}
               >
                 <span className={`text-sm ${hasWorkout ? 'text-zinc-200' : 'text-zinc-600'}`}>
@@ -240,15 +288,74 @@ export default function Schedule() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[80]">
           <div className="surface p-6 w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <h2 className="text-lg font-bold mb-4">Schedule Workout</h2>
-            <p className="text-sm text-zinc-400 mb-4">
-              Select a workout and date to schedule it.
-            </p>
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="btn-ghost w-full"
-            >
-              Close
-            </button>
+            <form onSubmit={handleScheduleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">Select Workout</label>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {workouts.map((workout) => (
+                    <button
+                      key={workout.id}
+                      type="button"
+                      onClick={() => setSelectedWorkout(workout.id)}
+                      className={`w-full p-3 rounded-xl text-left transition-colors ${
+                        selectedWorkout === workout.id
+                          ? 'bg-brand-900/30 border border-brand-500/30'
+                          : 'bg-zinc-800/50 border border-zinc-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Dumbbell size={14} className="text-zinc-500" />
+                        <span className="text-sm font-medium text-zinc-200">{workout.name}</span>
+                      </div>
+                      <p className="text-xs text-zinc-500 mt-1">{workout.exercises?.length || 0} exercises</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">Date</label>
+                <input
+                  type="date"
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                  className="input-modern w-full"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">Time (optional)</label>
+                <input
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                  className="input-modern w-full"
+                />
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setSelectedWorkout(null);
+                    setScheduleDate('');
+                    setScheduleTime('');
+                  }}
+                  className="btn-ghost flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || !selectedWorkout || !scheduleDate}
+                  className="btn-brand flex-1 disabled:opacity-50"
+                >
+                  {loading ? 'Scheduling...' : 'Schedule'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

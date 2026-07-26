@@ -52,6 +52,8 @@ export const fetchStats = () => get("/progress/stats");
 export const fetchHistory = (days = 30) =>
   get(`/progress/history?days=${days}`);
 export const fetchPrograms = () => get("/programs");
+export const createProgram = (program) => post("/programs", program);
+export const deleteProgram = (id) => del(`/programs/${id}`);
 export const fetchActiveProgram = () => get("/programs/enrolled/active");
 export const enrollProgram = (programId) =>
   post("/programs/enroll", { program_id: programId });
@@ -65,6 +67,7 @@ export const updateGoalProgress = (goalId, currentValue) =>
 export const fetchCalendar = (year, month) =>
   get(`/schedule/calendar?year=${year}&month=${month}`);
 export const fetchUpcomingWorkouts = () => get("/schedule/workouts/upcoming");
+export const scheduleWorkout = (data) => post("/schedule/workouts", data);
 export const completeScheduledWorkout = (scheduledId) =>
   put(`/schedule/workouts/${scheduledId}/complete`);
 export const skipScheduledWorkout = (scheduledId, reason = "Skipped") =>
